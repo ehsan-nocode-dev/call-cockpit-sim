@@ -3,8 +3,113 @@ export type UserRole = 'admin' | 'assistant';
 export type CompanyPriority = 'A' | 'B' | 'C' | 'D' | 'E';
 export type CallPriority = 1 | 2 | 3 | 4;
 
-export type Status = 'new' | 'active' | 'pending' | 'blocked' | 'completed' | 'lost';
-export type StatusSpec = 'interested' | 'follow-up' | 'negotiation' | 'no-answer' | 'rejected' | 'callback' | '';
+export type Status =
+  | 'offen'
+  | 'alternativer Kontaktweg'
+  | 'in Diskussion'
+  | 'Opportunity'
+  | 'in Terminierung'
+  | 'Termin'
+  | 'NDA / IRL'
+  | 'Angebotserstellung'
+  | 'LOI'
+  | 'on hold'
+  | 'Deal'
+  | 'kein Interesse'
+  | 'ad acta'
+  | 'Opportunity verloren'
+  | 'zukünftiges Potenzial';
+
+export const statusList: Status[] = [
+  'offen',
+  'alternativer Kontaktweg',
+  'in Diskussion',
+  'Opportunity',
+  'in Terminierung',
+  'Termin',
+  'NDA / IRL',
+  'Angebotserstellung',
+  'LOI',
+  'on hold',
+  'Deal',
+  'kein Interesse',
+  'ad acta',
+  'Opportunity verloren',
+  'zukünftiges Potenzial',
+];
+
+export const statusColorClass: Record<Status, string> = {
+  'offen': 'status-offen',
+  'alternativer Kontaktweg': 'status-alt-kontakt',
+  'in Diskussion': 'status-diskussion',
+  'Opportunity': 'status-opportunity',
+  'in Terminierung': 'status-terminierung',
+  'Termin': 'status-termin',
+  'NDA / IRL': 'status-nda',
+  'Angebotserstellung': 'status-angebot',
+  'LOI': 'status-loi',
+  'on hold': 'status-on-hold',
+  'Deal': 'status-deal',
+  'kein Interesse': 'status-kein-interesse',
+  'ad acta': 'status-ad-acta',
+  'Opportunity verloren': 'status-opp-verloren',
+  'zukünftiges Potenzial': 'status-zukunft',
+};
+
+export const keinInteresseReasons = [
+  'einfach kein Interesse',
+  'Wunsch nach Eigenständigkeit',
+  'Nachfolge geregelt',
+  'Vorbehalte',
+  'Familienunternehmen',
+  'kein Verkaufsdruck',
+  'reagiert nicht auf E-Mails',
+  'prinzipiell kein Interesse',
+  'maximale Anrufversuche',
+  'OPT-OUT',
+  'sonstiges',
+];
+
+export const adActaReasons = [
+  'zu klein',
+  'zu groß',
+  'Konzern',
+  'Investor',
+  'anderer ungeeigneter Gesellschafter',
+  'passt nicht',
+  'blocken',
+  'Daten fehlerhaft',
+  'verkauft',
+  'keine Telefonnummer',
+  'existiert nicht mehr',
+  'mutmaßlich schwierige Gesellschafterstruktur',
+  'mutmaßlich Nachfolge geregelt',
+  'mutmaßlich zu jung',
+  'keine Kontaktmöglichkeit',
+  'sonstiges',
+];
+
+export const onHoldReasons = [
+  'Zahlen verschlechtert',
+  'Verkäufer zögert',
+  'Käufer zögert',
+  'vertagt',
+  'Sonstiges',
+];
+
+export const zukunftReasons = [
+  'nicht der richtige Zeitpunkt',
+  'strategische Neuausrichtung',
+  'operative Involvierung',
+  'im Kontakt bleiben',
+  'regelmäßig updaten',
+  'Marktveränderung abwarten',
+  'Wachstumsphase abwarten',
+  'höhere Bewertung abwarten',
+  'Gesellschafterkreis aktuell uneinig',
+];
+
+export type StatusSpec = string;
 
 export interface Campaign {
   id: string;
@@ -81,6 +186,11 @@ export interface Company {
   management: Manager[];
   decisionMaker: DecisionMaker;
   history: HistoryEntry[];
+  // Additional status-specific fields
+  certainPotential?: boolean;
+  zukunftWirdInteressant?: Date | null;
+  zukunftVerkaufGeplant?: Date | null;
+  zukunftKommentar?: string;
 }
 
 // --- CAMPAIGNS ---
@@ -123,6 +233,11 @@ const daysFromNow = (days: number, h: number, m: number) => {
   d.setHours(h, m, 0, 0);
   return d;
 };
+const futureDate = (months: number) => {
+  const d = new Date(now);
+  d.setMonth(d.getMonth() + months);
+  return d;
+};
 
 let historyId = 1;
 const hEntry = (type: HistoryEntry['type'], content: string, daysAgo: number): HistoryEntry => ({
@@ -141,7 +256,7 @@ export const companies: Company[] = [
     employees: 280, lastAnnualFinancials: '2025',
     description: 'Leading manufacturer of precision CNC machinery and industrial automation systems. Founded in 1978, the company serves automotive and aerospace sectors across Europe. Strong IP portfolio with 23 active patents.',
     companyPriority: 'A', tags: ['manufacturing', 'automation', 'family-owned'],
-    campaignId: 'camp-1', status: 'active', statusSpec: 'follow-up', statusComment: 'CEO interested, wants second call',
+    campaignId: 'camp-1', status: 'in Diskussion', statusSpec: '', statusComment: 'CEO interested, wants second call',
     callPriority: 1, nextContact: today(10, 30), queueTags: [],
     shareholders: [
       { id: 's1', name: 'Hans Müller', birthYear: 1958, ownershipPct: 60, externalNote: 'Founder, considering retirement', isDecisionMaker: true },
@@ -164,7 +279,7 @@ export const companies: Company[] = [
       hEntry('email', 'Sent company profile and NDA draft.', 9),
       hEntry('note', 'CEO mentioned potential interest in partial exit. Wants to keep operational control.', 7),
       hEntry('call', 'Detailed discussion about valuation expectations. Very engaged.', 3),
-      hEntry('status', 'Status changed: new → active', 3),
+      hEntry('status', 'Status → in Diskussion', 3),
     ],
   },
   {
@@ -174,7 +289,7 @@ export const companies: Company[] = [
     employees: 85, lastAnnualFinancials: '2025',
     description: 'SaaS platform for B2B procurement automation. Strong growth trajectory with 40% YoY revenue increase. Key clients include IKEA, Volvo, and Ericsson.',
     companyPriority: 'A', tags: ['saas', 'procurement', 'high-growth'],
-    campaignId: 'camp-2', status: 'active', statusSpec: 'negotiation', statusComment: 'Term sheet discussion ongoing',
+    campaignId: 'camp-2', status: 'Angebotserstellung', statusSpec: '', statusComment: 'Term sheet discussion ongoing',
     callPriority: 1, nextContact: today(11, 0), queueTags: [],
     shareholders: [
       { id: 's4', name: 'Erik Lindqvist', birthYear: 1980, ownershipPct: 45, externalNote: 'Co-founder & CEO' },
@@ -196,7 +311,7 @@ export const companies: Company[] = [
       hEntry('call', 'First call with CEO. Very professional. Wants to explore minority investment.', 14),
       hEntry('call', 'Follow-up with CEO and CTO. Deep dive on tech stack and growth metrics.', 7),
       hEntry('note', 'Company growing fast. NRR >130%. Strong fit.', 5),
-      hEntry('status', 'Status changed: new → active → negotiation', 3),
+      hEntry('status', 'Status → Angebotserstellung', 3),
     ],
   },
   {
@@ -206,7 +321,7 @@ export const companies: Company[] = [
     employees: 150, lastAnnualFinancials: '2024',
     description: 'Specialized consulting firm for industrial process optimization. Strong presence in automotive and chemicals. Family-owned since 1965.',
     companyPriority: 'B', tags: ['consulting', 'industrial', 'family-owned'],
-    campaignId: 'camp-1', status: 'pending', statusSpec: 'callback', statusComment: 'DM on vacation until Feb 15',
+    campaignId: 'camp-1', status: 'in Terminierung', statusSpec: '', statusComment: 'DM on vacation until Feb 15',
     callPriority: 3, nextContact: daysFromNow(5, 9, 30), queueTags: ['evening-ok'],
     shareholders: [
       { id: 's7', name: 'Friedrich Braun', birthYear: 1950, ownershipPct: 70, externalNote: 'Founder, semi-retired' },
@@ -233,7 +348,7 @@ export const companies: Company[] = [
     employees: 120, lastAnnualFinancials: '2025',
     description: 'Precision engineering firm specializing in aerospace components. Third-generation family business. Considering succession options.',
     companyPriority: 'B', tags: ['aerospace', 'precision', 'succession'],
-    campaignId: 'camp-3', status: 'new', statusSpec: '', statusComment: '',
+    campaignId: 'camp-3', status: 'offen', statusSpec: '', statusComment: '',
     callPriority: 2, nextContact: today(14, 15), queueTags: [],
     shareholders: [
       { id: 's9', name: 'James Whitfield', birthYear: 1955, ownershipPct: 80, externalNote: 'Third-gen owner' },
@@ -259,7 +374,7 @@ export const companies: Company[] = [
     employees: 380, lastAnnualFinancials: '2025',
     description: 'Leading Swiss manufacturer of high-precision measurement instruments. Strong export business (75% international). Key markets: pharma, food & beverage.',
     companyPriority: 'A', tags: ['instruments', 'swiss-quality', 'export'],
-    campaignId: 'camp-1', status: 'active', statusSpec: 'interested', statusComment: 'Very receptive. Second meeting scheduled.',
+    campaignId: 'camp-1', status: 'NDA / IRL', statusSpec: '', statusComment: 'Very receptive. NDA signed, IRL meeting next week.',
     callPriority: 1, nextContact: today(9, 0), queueTags: [],
     shareholders: [
       { id: 's11', name: 'Werner Hofer', birthYear: 1962, ownershipPct: 55, externalNote: 'CEO and majority owner' },
@@ -282,7 +397,7 @@ export const companies: Company[] = [
       hEntry('call', 'Second call. Deep discussion about valuation methodology.', 7),
       hEntry('email', 'CEO sent financials proactively.', 5),
       hEntry('note', 'Premium target. High motivation for partial exit to secure succession.', 4),
-      hEntry('status', 'Status: new → active → interested', 4),
+      hEntry('status', 'Status → NDA / IRL', 4),
       hEntry('call', 'Scheduled in-person meeting in Zurich for next week.', 1),
     ],
   },
@@ -293,7 +408,7 @@ export const companies: Company[] = [
     employees: 52, lastAnnualFinancials: '2025',
     description: 'Data analytics platform for maritime and offshore industries. Niche player with strong domain expertise and sticky customer base.',
     companyPriority: 'B', tags: ['analytics', 'maritime', 'niche'],
-    campaignId: 'camp-2', status: 'active', statusSpec: 'follow-up', statusComment: 'Interested but wants to close current funding round first',
+    campaignId: 'camp-2', status: 'Opportunity', statusSpec: '', statusComment: 'Interested but wants to close current funding round first',
     callPriority: 2, nextContact: today(15, 30), queueTags: ['evening-ok'],
     shareholders: [
       { id: 's14', name: 'Olav Nordstrom', birthYear: 1976, ownershipPct: 55, externalNote: 'Founder' },
@@ -312,6 +427,7 @@ export const companies: Company[] = [
       hEntry('email', 'Outreach email sent.', 15),
       hEntry('call', 'Quick call. Interested but focused on current round.', 10),
       hEntry('note', 'Follow up in Feb.', 10),
+      hEntry('status', 'Status → Opportunity', 8),
     ],
   },
   {
@@ -321,7 +437,7 @@ export const companies: Company[] = [
     employees: 95, lastAnnualFinancials: '2025',
     description: 'Enterprise software development firm specializing in ERP customization for manufacturing. Strong Oracle and SAP partnerships.',
     companyPriority: 'C', tags: ['erp', 'enterprise', 'oracle'],
-    campaignId: 'camp-1', status: 'new', statusSpec: 'no-answer', statusComment: 'Multiple attempts, no answer',
+    campaignId: 'camp-1', status: 'alternativer Kontaktweg', statusSpec: '', statusComment: 'Multiple attempts, trying email approach',
     callPriority: 4, nextContact: tomorrow(10, 0), queueTags: [],
     shareholders: [
       { id: 's17', name: 'Peter Gruber', birthYear: 1965, ownershipPct: 100, externalNote: 'Sole owner' },
@@ -339,6 +455,7 @@ export const companies: Company[] = [
       hEntry('call', 'No answer.', 5),
       hEntry('call', 'No answer again.', 3),
       hEntry('call', 'No answer. Left voicemail.', 1),
+      hEntry('status', 'Status → alternativer Kontaktweg', 1),
     ],
   },
   {
@@ -348,7 +465,8 @@ export const companies: Company[] = [
     employees: 210, lastAnnualFinancials: '2025',
     description: 'Industrial maintenance and facility management services for large-scale manufacturing plants in Scandinavia.',
     companyPriority: 'B', tags: ['services', 'industrial', 'facility-mgmt'],
-    campaignId: 'camp-2', status: 'blocked', statusSpec: 'rejected', statusComment: 'Not interested at this time',
+    campaignId: 'camp-2', status: 'kein Interesse', statusSpec: 'einfach kein Interesse', statusComment: 'Clear rejection from CEO',
+    certainPotential: false,
     nextContact: null, queueTags: [],
     shareholders: [
       { id: 's18', name: 'Lars Jensen', birthYear: 1970, ownershipPct: 50, externalNote: '' },
@@ -365,7 +483,7 @@ export const companies: Company[] = [
     },
     history: [
       hEntry('call', 'Spoke with CEO. Not interested. Clear rejection.', 8),
-      hEntry('status', 'Status: new → blocked', 8),
+      hEntry('status', 'Status → kein Interesse (einfach kein Interesse)', 8),
     ],
   },
   {
@@ -375,7 +493,7 @@ export const companies: Company[] = [
     employees: 60, lastAnnualFinancials: '2025',
     description: 'Regulatory technology (RegTech) solutions for European banks. Specialized in AML/KYC compliance automation.',
     companyPriority: 'C', tags: ['fintech', 'regtech', 'compliance'],
-    campaignId: 'camp-1', status: 'pending', statusSpec: 'follow-up', statusComment: 'Waiting for board meeting results',
+    campaignId: 'camp-1', status: 'on hold', statusSpec: 'Verkäufer zögert', statusComment: 'Waiting for board meeting results',
     callPriority: 3, nextContact: daysFromNow(3, 14, 0), queueTags: [],
     shareholders: [
       { id: 's20', name: 'Michael Schwarz', birthYear: 1978, ownershipPct: 40, externalNote: '' },
@@ -395,6 +513,7 @@ export const companies: Company[] = [
       hEntry('call', 'Initial call. Interested but needs board approval.', 10),
       hEntry('email', 'Sent preliminary term sheet.', 8),
       hEntry('call', 'Follow up. Board meeting scheduled for next week.', 3),
+      hEntry('status', 'Status → on hold (Verkäufer zögert)', 2),
     ],
   },
   {
@@ -404,7 +523,7 @@ export const companies: Company[] = [
     employees: 40, lastAnnualFinancials: '2025',
     description: 'Digital health platform for occupational health services. Fast-growing with key contracts in Finnish public sector.',
     companyPriority: 'C', tags: ['healthtech', 'digital-health', 'public-sector'],
-    campaignId: 'camp-2', status: 'new', statusSpec: '', statusComment: '',
+    campaignId: 'camp-2', status: 'offen', statusSpec: '', statusComment: '',
     callPriority: 3, nextContact: today(16, 0), queueTags: ['evening-ok'],
     shareholders: [
       { id: 's23', name: 'Mika Virtanen', birthYear: 1983, ownershipPct: 60, externalNote: 'Founder' },
@@ -429,7 +548,7 @@ export const companies: Company[] = [
     employees: 420, lastAnnualFinancials: '2025',
     description: 'Full-service logistics provider specializing in chemical and hazardous materials transport across Europe.',
     companyPriority: 'A', tags: ['logistics', 'hazmat', 'chemicals'],
-    campaignId: 'camp-1', status: 'active', statusSpec: 'interested', statusComment: 'Strong interest, NDA signed',
+    campaignId: 'camp-1', status: 'LOI', statusSpec: '', statusComment: 'LOI signed, due diligence starting',
     callPriority: 2, nextContact: today(13, 0), queueTags: [],
     shareholders: [
       { id: 's25', name: 'Wolfgang Krämer', birthYear: 1960, ownershipPct: 75, externalNote: 'Second generation' },
@@ -450,7 +569,7 @@ export const companies: Company[] = [
       hEntry('call', 'Detailed call. NDA requested.', 15),
       hEntry('email', 'NDA sent and signed.', 13),
       hEntry('call', 'Deep dive on business model and fleet.', 8),
-      hEntry('status', 'Status: new → active → interested', 8),
+      hEntry('status', 'Status → LOI', 3),
     ],
   },
   {
@@ -460,7 +579,7 @@ export const companies: Company[] = [
     employees: 195, lastAnnualFinancials: '2025',
     description: 'Wind farm development and management company. Portfolio of 12 operational sites across Scotland.',
     companyPriority: 'B', tags: ['renewables', 'wind', 'infrastructure'],
-    campaignId: 'camp-3', status: 'pending', statusSpec: 'callback', statusComment: 'DM traveling, call back next week',
+    campaignId: 'camp-3', status: 'Termin', statusSpec: '', statusComment: 'Meeting scheduled for next Thursday',
     callPriority: 3, nextContact: daysFromNow(4, 10, 0), queueTags: [],
     shareholders: [
       { id: 's27', name: 'Robert MacGregor', birthYear: 1968, ownershipPct: 45, externalNote: '' },
@@ -478,6 +597,7 @@ export const companies: Company[] = [
     history: [
       hEntry('call', 'Brief call. Interested but traveling.', 5),
       hEntry('note', 'Schedule follow-up for next week.', 5),
+      hEntry('status', 'Status → Termin', 3),
     ],
   },
   {
@@ -487,7 +607,7 @@ export const companies: Company[] = [
     employees: 230, lastAnnualFinancials: '2025',
     description: 'Medical device manufacturer specializing in orthopedic implants. CE and FDA certified. Growing US export business.',
     companyPriority: 'A', tags: ['medtech', 'implants', 'fda-certified'],
-    campaignId: 'camp-1', status: 'active', statusSpec: 'negotiation', statusComment: 'Valuation discussion, competitive process',
+    campaignId: 'camp-1', status: 'Deal', statusSpec: '', statusComment: 'Deal closed, signing next week',
     callPriority: 1, nextContact: today(11, 30), queueTags: [],
     shareholders: [
       { id: 's30', name: 'Prof. Thomas Richter', birthYear: 1955, ownershipPct: 65, externalNote: 'Founder, orthopedic surgeon' },
@@ -500,8 +620,8 @@ export const companies: Company[] = [
     ],
     decisionMaker: {
       title: 'Prof.', firstName: 'Thomas', lastName: 'Richter', position: 'CEO & Founder',
-      birthYear: 1955, ownershipPct: 65, comment: 'Competitive process running. Needs quick decisions.',
-      tags: ['surgeon', 'competitive-process'], mobile: '+49 171 777 8888', direct: '+49 30 777 8889', email: 't.richter@berliner-medtech.de',
+      birthYear: 1955, ownershipPct: 65, comment: 'Deal signed. Final closing next week.',
+      tags: ['surgeon', 'deal-closed'], mobile: '+49 171 777 8888', direct: '+49 30 777 8889', email: 't.richter@berliner-medtech.de',
     },
     history: [
       hEntry('call', 'Warm intro from advisor network.', 30),
@@ -509,9 +629,8 @@ export const companies: Company[] = [
       hEntry('email', 'Teaser sent.', 24),
       hEntry('call', 'Management presentation.', 18),
       hEntry('note', 'Competitive process with 3 other bidders.', 14),
-      hEntry('status', 'Moved to negotiation phase.', 10),
-      hEntry('call', 'Valuation range discussed. €40-50M EV.', 5),
-      hEntry('email', 'Updated term sheet sent.', 3),
+      hEntry('status', 'Status → Deal', 2),
+      hEntry('call', 'Final terms agreed. €40-50M EV.', 1),
     ],
   },
   {
@@ -521,7 +640,10 @@ export const companies: Company[] = [
     employees: 70, lastAnnualFinancials: '2024',
     description: 'Maritime IoT solutions for fleet monitoring and predictive maintenance. Growing rapidly in the green shipping segment.',
     companyPriority: 'C', tags: ['maritime', 'iot', 'green-shipping'],
-    campaignId: 'camp-2', status: 'new', statusSpec: '', statusComment: '',
+    campaignId: 'camp-2', status: 'zukünftiges Potenzial', statusSpec: 'nicht der richtige Zeitpunkt', statusComment: 'CEO wants to grow more before considering exit',
+    zukunftWirdInteressant: futureDate(12),
+    zukunftVerkaufGeplant: futureDate(24),
+    zukunftKommentar: 'CEO möchte erst €20M Revenue erreichen, dann Gespräche aufnehmen. Regelmäßig updaten.',
     nextContact: daysFromNow(2, 9, 30), queueTags: [],
     shareholders: [
       { id: 's33', name: 'Gustav Andersson', birthYear: 1979, ownershipPct: 50, externalNote: '' },
@@ -533,10 +655,13 @@ export const companies: Company[] = [
     ],
     decisionMaker: {
       title: '', firstName: 'Gustav', lastName: 'Andersson', position: 'CEO & Founder',
-      birthYear: 1979, ownershipPct: 50, comment: 'Not yet contacted',
-      tags: [], mobile: '+46 70 444 5555', direct: '+46 31 444 5556', email: 'gustav@gbg-maritime.se',
+      birthYear: 1979, ownershipPct: 50, comment: 'Wants to grow first, then talk exit.',
+      tags: ['growth-first'], mobile: '+46 70 444 5555', direct: '+46 31 444 5556', email: 'gustav@gbg-maritime.se',
     },
-    history: [],
+    history: [
+      hEntry('call', 'Good conversation but timing not right.', 10),
+      hEntry('status', 'Status → zukünftiges Potenzial (nicht der richtige Zeitpunkt)', 10),
+    ],
   },
   {
     id: 'co-15', name: 'Salzburg Precision Tools KG', city: 'Salzburg', country: 'AT',
@@ -545,8 +670,9 @@ export const companies: Company[] = [
     employees: 130, lastAnnualFinancials: '2025',
     description: 'Manufacturer of precision cutting tools for metalworking industry. Strong presence in Central Europe with growing Middle East exports.',
     companyPriority: 'B', tags: ['tools', 'precision', 'metalworking'],
-    campaignId: 'camp-1', status: 'pending', statusSpec: 'no-answer', statusComment: 'Trying to reach DM',
-    callPriority: 3, nextContact: today(16, 30), queueTags: ['evening-ok'],
+    campaignId: 'camp-1', status: 'ad acta', statusSpec: 'zu klein', statusComment: 'Revenue too low for current mandate',
+    certainPotential: true,
+    nextContact: null, queueTags: [],
     shareholders: [
       { id: 's36', name: 'Karl Huber', birthYear: 1963, ownershipPct: 80, externalNote: 'Founder' },
       { id: 's37', name: 'Anita Huber', birthYear: 1965, ownershipPct: 20, externalNote: 'Spouse' },
@@ -556,12 +682,67 @@ export const companies: Company[] = [
     ],
     decisionMaker: {
       title: '', firstName: 'Karl', lastName: 'Huber', position: 'CEO & Owner',
-      birthYear: 1963, ownershipPct: 80, comment: 'Try afternoons. Usually in production mornings.',
+      birthYear: 1963, ownershipPct: 80, comment: 'Good company, just too small for current fund.',
       tags: ['hands-on'], mobile: '+43 664 888 9999', direct: '+43 662 888 9990', email: 'k.huber@salzburg-precision.at',
     },
     history: [
-      hEntry('call', 'No answer. In production.', 4),
-      hEntry('call', 'Brief call. Asked to call back.', 2),
+      hEntry('call', 'Spoke with CEO. Open to conversation but company too small.', 4),
+      hEntry('status', 'Status → ad acta (zu klein, certain potential: yes)', 4),
+    ],
+  },
+  {
+    id: 'co-16', name: 'Hamburger Verpackung GmbH', city: 'Hamburg', country: 'DE',
+    centralPhone: '+49 40 222 3333', website: 'www.hh-verpackung.de',
+    revenue: '€38M', ebitda: '€5.5M', ebit: '€3.8M', netProfit: '€2.5M',
+    employees: 290, lastAnnualFinancials: '2025',
+    description: 'Sustainable packaging solutions for FMCG sector. Growing demand for eco-friendly alternatives.',
+    companyPriority: 'B', tags: ['packaging', 'sustainability', 'fmcg'],
+    campaignId: 'camp-1', status: 'Opportunity verloren', statusSpec: '', statusComment: 'Lost to competitor bid from PE fund',
+    nextContact: null, queueTags: [],
+    shareholders: [
+      { id: 's38', name: 'Heinrich Becker', birthYear: 1960, ownershipPct: 65, externalNote: '' },
+      { id: 's39', name: 'Becker Family', birthYear: 0, ownershipPct: 35, externalNote: '' },
+    ],
+    management: [
+      { id: 'm29', name: 'Heinrich Becker', birthYear: 1960, position: 'CEO', externalNote: '', isCEO: true, isDecisionMaker: true },
+    ],
+    decisionMaker: {
+      title: '', firstName: 'Heinrich', lastName: 'Becker', position: 'CEO',
+      birthYear: 1960, ownershipPct: 65, comment: 'Sold to competing PE fund.',
+      tags: ['lost-deal'], mobile: '+49 172 222 3333', direct: '+49 40 222 3334', email: 'h.becker@hh-verpackung.de',
+    },
+    history: [
+      hEntry('call', 'Initial contact went well.', 30),
+      hEntry('status', 'Status → Opportunity', 25),
+      hEntry('call', 'Lost in competitive process.', 5),
+      hEntry('status', 'Status → Opportunity verloren', 5),
+    ],
+  },
+  {
+    id: 'co-17', name: 'Kölner Drucktechnik AG', city: 'Cologne', country: 'DE',
+    centralPhone: '+49 221 555 6666', website: 'www.koelner-druck.de',
+    revenue: '€25M', ebitda: '€4.0M', ebit: '€2.8M', netProfit: '€1.8M',
+    employees: 170, lastAnnualFinancials: '2025',
+    description: 'Industrial printing technology and digital print solutions for packaging industry.',
+    companyPriority: 'C', tags: ['printing', 'digital', 'packaging'],
+    campaignId: 'camp-1', status: 'kein Interesse', statusSpec: 'Familienunternehmen', statusComment: 'Family wants to keep business independent',
+    certainPotential: true,
+    nextContact: null, queueTags: [],
+    shareholders: [
+      { id: 's40', name: 'Franz Weber', birthYear: 1958, ownershipPct: 50, externalNote: '' },
+      { id: 's41', name: 'Weber Family Trust', birthYear: 0, ownershipPct: 50, externalNote: '' },
+    ],
+    management: [
+      { id: 'm30', name: 'Franz Weber', birthYear: 1958, position: 'CEO', externalNote: '', isCEO: true, isDecisionMaker: true },
+    ],
+    decisionMaker: {
+      title: '', firstName: 'Franz', lastName: 'Weber', position: 'CEO',
+      birthYear: 1958, ownershipPct: 50, comment: 'Strong family values, not interested in selling.',
+      tags: ['family-first'], mobile: '+49 172 555 6666', direct: '+49 221 555 6667', email: 'f.weber@koelner-druck.de',
+    },
+    history: [
+      hEntry('call', 'Spoke with CEO. Family business, no interest in selling.', 12),
+      hEntry('status', 'Status → kein Interesse (Familienunternehmen, certain potential: yes)', 12),
     ],
   },
 ];

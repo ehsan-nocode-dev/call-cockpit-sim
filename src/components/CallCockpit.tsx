@@ -2,11 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { format, addMinutes, addHours, setHours, setMinutes, addDays } from 'date-fns';
 import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
-import { campaigns, Company, Status, StatusSpec } from '@/data/mockData';
+import { campaigns, Company, Status, StatusSpec, statusList, statusColorClass, keinInteresseReasons, adActaReasons, onHoldReasons, zukunftReasons } from '@/data/mockData';
 import HistoryBlock from './HistoryBlock';
 
-const statusOptions: Status[] = ['new', 'active', 'pending', 'blocked', 'completed', 'lost'];
-const statusSpecOptions: StatusSpec[] = ['interested', 'follow-up', 'negotiation', 'no-answer', 'rejected', 'callback', ''];
 const titleOptions = ['', 'Dr.', 'Prof.', 'Mag.'];
 
 const CallCockpit: React.FC = () => {
@@ -304,46 +302,165 @@ const CallCockpit: React.FC = () => {
           {/* Status & Next Contact */}
           <div className="cockpit-section space-y-2">
             <div className="cockpit-label">Status & Next Contact</div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {isAdmin ? (
                 <select
                   value={co.status}
                   onChange={e => {
                     const newStatus = e.target.value as Status;
-                    updateCompany(co.id, { status: newStatus });
+                    updateCompany(co.id, { status: newStatus, statusSpec: '' });
                     addHistoryEntry(co.id, {
                       timestamp: new Date(),
                       type: 'status',
-                      content: `Status changed to ${newStatus}`,
+                      content: `Status → ${newStatus}`,
                       user: 'Current User',
                     });
                   }}
-                  className={`status-pill status-${co.status} bg-transparent border border-border cursor-pointer`}
+                  className={`status-pill ${statusColorClass[co.status]} bg-transparent border border-border cursor-pointer text-xs`}
                 >
-                  {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  {statusList.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               ) : (
-                <span className={`status-pill status-${co.status}`}>{co.status}</span>
-              )}
-              {isAdmin ? (
-                <select
-                  value={co.statusSpec}
-                  onChange={e => updateCompany(co.id, { statusSpec: e.target.value as StatusSpec })}
-                  className="text-xs bg-surface-2 border border-border rounded px-1.5 py-0.5 text-foreground"
-                >
-                  {statusSpecOptions.map(s => <option key={s} value={s}>{s || '— none —'}</option>)}
-                </select>
-              ) : (
-                co.statusSpec && <span className="text-xs text-muted-foreground">{co.statusSpec}</span>
+                <span className={`status-pill ${statusColorClass[co.status]}`}>{co.status}</span>
               )}
             </div>
-            <input
-              value={co.statusComment}
-              onChange={e => updateCompany(co.id, { statusComment: e.target.value })}
-              className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Status comment..."
-              disabled={!isAdmin}
-            />
+
+            {/* Conditional sub-status for specific statuses */}
+            {isAdmin && co.status === 'kein Interesse' && (
+              <div className="space-y-2 border-t border-border pt-2">
+                <select
+                  value={co.statusSpec}
+                  onChange={e => updateCompany(co.id, { statusSpec: e.target.value })}
+                  className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground"
+                >
+                  <option value="">— Grund wählen —</option>
+                  {keinInteresseReasons.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                {co.statusSpec === 'sonstiges' && (
+                  <input
+                    value={co.statusComment}
+                    onChange={e => updateCompany(co.id, { statusComment: e.target.value })}
+                    className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground"
+                    placeholder="Freitext..."
+                  />
+                )}
+                <label className="flex items-center gap-2 text-xs text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={co.certainPotential || false}
+                    onChange={e => updateCompany(co.id, { certainPotential: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  Certain Potential
+                </label>
+              </div>
+            )}
+
+            {isAdmin && co.status === 'ad acta' && (
+              <div className="space-y-2 border-t border-border pt-2">
+                <select
+                  value={co.statusSpec}
+                  onChange={e => updateCompany(co.id, { statusSpec: e.target.value })}
+                  className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground"
+                >
+                  <option value="">— Grund wählen —</option>
+                  {adActaReasons.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                {co.statusSpec === 'sonstiges' && (
+                  <input
+                    value={co.statusComment}
+                    onChange={e => updateCompany(co.id, { statusComment: e.target.value })}
+                    className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground"
+                    placeholder="Freitext..."
+                  />
+                )}
+                <label className="flex items-center gap-2 text-xs text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={co.certainPotential || false}
+                    onChange={e => updateCompany(co.id, { certainPotential: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  Certain Potential
+                </label>
+              </div>
+            )}
+
+            {isAdmin && co.status === 'on hold' && (
+              <div className="space-y-2 border-t border-border pt-2">
+                <select
+                  value={co.statusSpec}
+                  onChange={e => updateCompany(co.id, { statusSpec: e.target.value })}
+                  className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground"
+                >
+                  <option value="">— Grund wählen —</option>
+                  {onHoldReasons.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                {co.statusSpec === 'Sonstiges' && (
+                  <input
+                    value={co.statusComment}
+                    onChange={e => updateCompany(co.id, { statusComment: e.target.value })}
+                    className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground"
+                    placeholder="Freitext..."
+                  />
+                )}
+              </div>
+            )}
+
+            {isAdmin && co.status === 'zukünftiges Potenzial' && (
+              <div className="space-y-2 border-t border-border pt-2">
+                <select
+                  value={co.statusSpec}
+                  onChange={e => updateCompany(co.id, { statusSpec: e.target.value })}
+                  className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground"
+                >
+                  <option value="">— Grund wählen —</option>
+                  {zukunftReasons.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground">Wird interessant zu</label>
+                    <input
+                      type="date"
+                      value={co.zukunftWirdInteressant ? format(co.zukunftWirdInteressant, 'yyyy-MM-dd') : ''}
+                      onChange={e => updateCompany(co.id, { zukunftWirdInteressant: e.target.value ? new Date(e.target.value) : null })}
+                      className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-muted-foreground">Verkauf geplant zu</label>
+                    <input
+                      type="date"
+                      value={co.zukunftVerkaufGeplant ? format(co.zukunftVerkaufGeplant, 'yyyy-MM-dd') : ''}
+                      onChange={e => updateCompany(co.id, { zukunftVerkaufGeplant: e.target.value ? new Date(e.target.value) : null })}
+                      className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground"
+                    />
+                  </div>
+                </div>
+                <textarea
+                  value={co.zukunftKommentar || ''}
+                  onChange={e => updateCompany(co.id, { zukunftKommentar: e.target.value })}
+                  className="w-full text-xs text-foreground bg-surface-2 border border-border rounded p-1.5 resize-none"
+                  rows={2}
+                  placeholder="Kommentar..."
+                />
+              </div>
+            )}
+
+            {/* Show sub-status for assistant (read-only) */}
+            {!isAdmin && co.statusSpec && (
+              <div className="text-xs text-muted-foreground">{co.statusSpec}</div>
+            )}
+
+            {/* Status comment (for statuses without special sub-status UI) */}
+            {isAdmin && !['kein Interesse', 'ad acta', 'on hold', 'zukünftiges Potenzial'].includes(co.status) && (
+              <input
+                value={co.statusComment}
+                onChange={e => updateCompany(co.id, { statusComment: e.target.value })}
+                className="w-full text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Status comment..."
+              />
+            )}
 
             {/* Next Contact */}
             <div className="flex items-center gap-2">

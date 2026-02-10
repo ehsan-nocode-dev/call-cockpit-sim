@@ -37,12 +37,21 @@
     --radius: 0.25rem;
 
     /* Status colors */
-    --status-new: 210 80% 55%;
-    --status-active: 150 60% 45%;
-    --status-pending: 40 80% 55%;
-    --status-blocked: 0 65% 50%;
-    --status-completed: 185 70% 50%;
-    --status-lost: 0 40% 40%;
+    --status-offen: 220 15% 55%;
+    --status-alt-kontakt: 220 10% 40%;
+    --status-diskussion: 150 60% 45%;
+    --status-opportunity: 210 70% 55%;
+    --status-terminierung: 210 70% 55%;
+    --status-termin: 210 70% 55%;
+    --status-nda: 210 70% 55%;
+    --status-angebot: 220 65% 42%;
+    --status-loi: 220 65% 42%;
+    --status-on-hold: 210 30% 50%;
+    --status-deal: 230 70% 55%;
+    --status-kein-interesse: 0 65% 50%;
+    --status-ad-acta: 0 55% 45%;
+    --status-opp-verloren: 0 45% 35%;
+    --status-zukunft: 175 60% 45%;
 
     /* Priority colors */
     --priority-a: 0 70% 55%;
@@ -98,30 +107,21 @@
     @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
   }
 
-  .status-new {
-    background: hsl(var(--status-new) / 0.15);
-    color: hsl(var(--status-new));
-  }
-  .status-active {
-    background: hsl(var(--status-active) / 0.15);
-    color: hsl(var(--status-active));
-  }
-  .status-pending {
-    background: hsl(var(--status-pending) / 0.15);
-    color: hsl(var(--status-pending));
-  }
-  .status-blocked {
-    background: hsl(var(--status-blocked) / 0.15);
-    color: hsl(var(--status-blocked));
-  }
-  .status-completed {
-    background: hsl(var(--status-completed) / 0.15);
-    color: hsl(var(--status-completed));
-  }
-  .status-lost {
-    background: hsl(var(--status-lost) / 0.15);
-    color: hsl(var(--status-lost));
-  }
+  .status-offen { background: hsl(var(--status-offen) / 0.15); color: hsl(var(--status-offen)); }
+  .status-alt-kontakt { background: hsl(var(--status-alt-kontakt) / 0.15); color: hsl(var(--status-alt-kontakt)); }
+  .status-diskussion { background: hsl(var(--status-diskussion) / 0.15); color: hsl(var(--status-diskussion)); }
+  .status-opportunity { background: hsl(var(--status-opportunity) / 0.15); color: hsl(var(--status-opportunity)); }
+  .status-terminierung { background: hsl(var(--status-terminierung) / 0.15); color: hsl(var(--status-terminierung)); }
+  .status-termin { background: hsl(var(--status-termin) / 0.15); color: hsl(var(--status-termin)); }
+  .status-nda { background: hsl(var(--status-nda) / 0.15); color: hsl(var(--status-nda)); }
+  .status-angebot { background: hsl(var(--status-angebot) / 0.15); color: hsl(var(--status-angebot)); }
+  .status-loi { background: hsl(var(--status-loi) / 0.15); color: hsl(var(--status-loi)); }
+  .status-on-hold { background: hsl(var(--status-on-hold) / 0.15); color: hsl(var(--status-on-hold)); }
+  .status-deal { background: hsl(var(--status-deal) / 0.15); color: hsl(var(--status-deal)); }
+  .status-kein-interesse { background: hsl(var(--status-kein-interesse) / 0.15); color: hsl(var(--status-kein-interesse)); }
+  .status-ad-acta { background: hsl(var(--status-ad-acta) / 0.15); color: hsl(var(--status-ad-acta)); }
+  .status-opp-verloren { background: hsl(var(--status-opp-verloren) / 0.15); color: hsl(var(--status-opp-verloren)); }
+  .status-zukunft { background: hsl(var(--status-zukunft) / 0.15); color: hsl(var(--status-zukunft)); }
 
   .priority-badge {
     @apply inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold;
