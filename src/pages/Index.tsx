@@ -1,13 +1,35 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React, { useState } from 'react';
+import { AppProvider } from '@/context/AppContext';
+import AppSidebar from '@/components/AppSidebar';
+import CallQueue from '@/components/CallQueue';
+import CallCockpit from '@/components/CallCockpit';
+import PlaceholderView from '@/components/PlaceholderView';
 
 const Index = () => {
+  const [activeView, setActiveView] = useState('queue');
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <AppProvider>
+      <div className="flex h-screen overflow-hidden">
+        <AppSidebar activeView={activeView} onViewChange={setActiveView} />
+        <div className="flex-1 flex overflow-hidden">
+          {activeView === 'queue' ? (
+            <>
+              {/* Call Queue - left panel */}
+              <div className="w-[520px] xl:w-[600px] 2xl:w-[700px] flex-shrink-0 border-r border-border overflow-hidden">
+                <CallQueue />
+              </div>
+              {/* Call Cockpit - right panel */}
+              <div className="flex-1 overflow-hidden">
+                <CallCockpit />
+              </div>
+            </>
+          ) : (
+            <PlaceholderView viewId={activeView} />
+          )}
+        </div>
       </div>
-    </div>
+    </AppProvider>
   );
 };
 
