@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Search, ArrowUpDown, Tag } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
-import { Company } from '@/data/mockData';
+import { Company, statusColorClass } from '@/data/mockData';
 
 const CallQueue: React.FC = () => {
   const { companies, selectedCompanyId, setSelectedCompanyId, role } = useAppState();
@@ -156,7 +156,7 @@ const QueueRow: React.FC<{
         </div>
       </td>
       <td>
-        <span className={`status-pill status-${company.status}`}>{company.status}</span>
+        <span className={`status-pill ${statusColorClass[company.status]}`}>{company.status}</span>
       </td>
       <td className="text-xs text-muted-foreground">{campaignName}</td>
       <td className="text-xs">
