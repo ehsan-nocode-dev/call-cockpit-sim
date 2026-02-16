@@ -4,26 +4,26 @@ import AppSidebar from '@/components/AppSidebar';
 import CallQueue from '@/components/CallQueue';
 import CallCockpit from '@/components/CallCockpit';
 import PlaceholderView from '@/components/PlaceholderView';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 const Index = () => {
   const [activeView, setActiveView] = useState('queue');
 
   return (
     <AppProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden w-full">
         <AppSidebar activeView={activeView} onViewChange={setActiveView} />
         <div className="flex-1 flex overflow-hidden">
           {activeView === 'queue' ? (
-            <>
-              {/* Call Queue - left panel */}
-              <div className="w-[520px] xl:w-[600px] 2xl:w-[700px] flex-shrink-0 border-r border-border overflow-hidden">
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel defaultSize={40} minSize={25} maxSize={60}>
                 <CallQueue />
-              </div>
-              {/* Call Cockpit - right panel */}
-              <div className="flex-1 overflow-hidden">
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={60} minSize={30}>
                 <CallCockpit />
-              </div>
-            </>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           ) : (
             <PlaceholderView viewId={activeView} />
           )}

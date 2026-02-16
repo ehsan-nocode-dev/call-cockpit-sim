@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { format, addMinutes, addHours, setHours, setMinutes, addDays } from 'date-fns';
-import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone } from 'lucide-react';
+import { format, addMinutes, addHours, setHours, setMinutes } from 'date-fns';
+import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X, Trash2 } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
 import { campaigns, Company, Status, StatusSpec, statusList, statusColorClass, keinInteresseReasons, adActaReasons, onHoldReasons, zukunftReasons } from '@/data/mockData';
 import HistoryBlock from './HistoryBlock';
@@ -12,11 +12,24 @@ const CallCockpit: React.FC = () => {
   const [note, setNote] = useState('');
   const [showEmailEvents, setShowEmailEvents] = useState(false);
   const [showPitch, setShowPitch] = useState(false);
+  const [pitchText, setPitchText] = useState('');
+  const [lastEventId, setLastEventId] = useState<string | null>(null);
+  const [addingShareholder, setAddingShareholder] = useState(false);
+  const [addingManager, setAddingManager] = useState(false);
+  const [newShName, setNewShName] = useState('');
+  const [newShPct, setNewShPct] = useState('');
+  const [newMgName, setNewMgName] = useState('');
+  const [newMgPos, setNewMgPos] = useState('');
+  const [editingCompanyTags, setEditingCompanyTags] = useState(false);
+  const [newCompanyTag, setNewCompanyTag] = useState('');
+  const [editingDmTags, setEditingDmTags] = useState(false);
+  const [newDmTag, setNewDmTag] = useState('');
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const isAdmin = role === 'admin';
 
   useEffect(() => {
     if (noteRef.current) noteRef.current.focus();
+    setLastEventId(null);
   }, [selectedCompany?.id]);
 
   if (!selectedCompany) {
@@ -88,12 +101,31 @@ const CallCockpit: React.FC = () => {
 
   const handleCallEvent = (label: string, preset: (() => Date) | null) => {
     if (!isAdmin) return;
+    // If there's a recent event, append to it instead of creating a new one
+    if (lastEventId) {
+      // Append to existing entry
+      const company = co;
+      const existingEntry = company.history.find(h => h.id === lastEventId);
+      if (existingEntry) {
+        const updatedHistory = company.history.map(h =>
+          h.id === lastEventId ? { ...h, content: `${h.content} → ${label}` } : h
+        );
+        updateCompany(co.id, { history: updatedHistory } as any);
+        if (preset) {
+          const nextDate = preset();
+          setNextContact(nextDate, false);
+        }
+        return;
+      }
+    }
+    const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
       timestamp: new Date(),
       type: 'call',
       content: label,
       user: 'Current User',
     });
+    setLastEventId(entryId);
     if (preset) {
       const nextDate = preset();
       setNextContact(nextDate, false);
@@ -120,6 +152,51 @@ const CallCockpit: React.FC = () => {
     setNote('');
   };
 
+  const addShareholder = () => {
+    if (!newShName.trim()) return;
+    const newSh = {
+      id: `s-${Date.now()}`,
+      name: newShName.trim(),
+      birthYear: 0,
+      ownershipPct: parseFloat(newShPct) || 0,
+      externalNote: '',
+    };
+    updateCompany(co.id, { shareholders: [...co.shareholders, newSh] });
+    setNewShName('');
+    setNewShPct('');
+    setAddingShareholder(false);
+  };
+
+  const addManager = () => {
+    if (!newMgName.trim()) return;
+    const newMg = {
+      id: `m-${Date.now()}`,
+      name: newMgName.trim(),
+      birthYear: 0,
+      position: newMgPos.trim() || 'N/A',
+      externalNote: '',
+    };
+    updateCompany(co.id, { management: [...co.management, newMg] });
+    setNewMgName('');
+    setNewMgPos('');
+    setAddingManager(false);
+  };
+
+  const setAsDecisionMaker = (name: string, birthYear: number, ownershipPct: number, position: string) => {
+    updateCompany(co.id, {
+      decisionMaker: { ...dm, firstName: name.split(' ')[0] || '', lastName: name.split(' ').slice(1).join(' ') || '', birthYear, ownershipPct, position },
+    });
+    addHistoryEntry(co.id, {
+      timestamp: new Date(),
+      type: 'dm-change',
+      content: `Decision maker set to ${name}`,
+      user: 'Current User',
+    });
+  };
+
+  const noteLines = note.split('\n').length;
+  const noteRows = Math.max(2, Math.min(noteLines + 1, 10));
+
   return (
     <div className="h-full overflow-auto p-3 space-y-3">
       {/* Two-column top section */}
@@ -134,7 +211,7 @@ const CallCockpit: React.FC = () => {
                 <div className="text-sm font-medium text-foreground">{campaign?.name || 'N/A'}</div>
               </div>
               <button
-                onClick={() => setShowPitch(true)}
+                onClick={() => { setShowPitch(true); setPitchText(campaign?.pitchText || ''); }}
                 className="text-xs text-primary hover:underline flex items-center gap-1"
               >
                 <ExternalLink className="w-3 h-3" /> Pitch
@@ -163,10 +240,41 @@ const CallCockpit: React.FC = () => {
             </div>
 
             {/* Tags */}
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 items-center">
               {co.tags.map(tag => (
-                <span key={tag} className="px-1.5 py-0.5 text-xs rounded bg-surface-2 text-muted-foreground">{tag}</span>
+                <span key={tag} className="px-1.5 py-0.5 text-xs rounded bg-surface-2 text-muted-foreground flex items-center gap-0.5">
+                  {tag}
+                  {editingCompanyTags && (
+                    <button onClick={() => updateCompany(co.id, { tags: co.tags.filter(t => t !== tag) })} className="hover:text-destructive">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </span>
               ))}
+              {editingCompanyTags ? (
+                <input
+                  autoFocus
+                  value={newCompanyTag}
+                  onChange={e => setNewCompanyTag(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newCompanyTag.trim()) {
+                      updateCompany(co.id, { tags: [...co.tags, newCompanyTag.trim()] });
+                      setNewCompanyTag('');
+                    }
+                    if (e.key === 'Escape') { setEditingCompanyTags(false); setNewCompanyTag(''); }
+                  }}
+                  onBlur={() => {
+                    if (newCompanyTag.trim()) updateCompany(co.id, { tags: [...co.tags, newCompanyTag.trim()] });
+                    setEditingCompanyTags(false); setNewCompanyTag('');
+                  }}
+                  className="w-16 text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="tag"
+                />
+              ) : (
+                <button onClick={() => setEditingCompanyTags(true)} className="text-muted-foreground hover:text-primary text-xs">
+                  <Plus className="w-3 h-3" />
+                </button>
+              )}
             </div>
 
             <div className="text-xs text-muted-foreground">{co.city}, {co.country}</div>
@@ -206,8 +314,13 @@ const CallCockpit: React.FC = () => {
 
           {/* Shareholders */}
           <div className="cockpit-section">
-            <div className="cockpit-label">Shareholders</div>
-            <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="cockpit-label mb-0">Shareholders</div>
+              <button onClick={() => setAddingShareholder(true)} className="text-muted-foreground hover:text-primary">
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="space-y-1 mt-1">
               {co.shareholders.slice(0, 5).map(sh => (
                 <div key={sh.id} className="flex items-center gap-2 text-xs">
                   <span className="text-foreground font-medium w-32 truncate">{sh.name}</span>
@@ -215,15 +328,37 @@ const CallCockpit: React.FC = () => {
                   <span className="text-primary font-mono w-10">{sh.ownershipPct}%</span>
                   <span className="text-muted-foreground flex-1 truncate">{sh.externalNote}</span>
                   {sh.isDecisionMaker && <User className="w-3 h-3 text-primary" />}
+                  {isAdmin && !sh.isDecisionMaker && (
+                    <button
+                      onClick={() => setAsDecisionMaker(sh.name, sh.birthYear, sh.ownershipPct, 'Shareholder')}
+                      title="Set as Decision Maker"
+                      className="text-muted-foreground hover:text-primary"
+                    >
+                      <User className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               ))}
+              {addingShareholder && (
+                <div className="flex items-center gap-1 mt-1">
+                  <input value={newShName} onChange={e => setNewShName(e.target.value)} placeholder="Name" className="text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground w-28 focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <input value={newShPct} onChange={e => setNewShPct(e.target.value)} placeholder="%" className="text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground w-12 focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <button onClick={addShareholder} className="text-xs text-primary hover:underline">Add</button>
+                  <button onClick={() => setAddingShareholder(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Management */}
           <div className="cockpit-section">
-            <div className="cockpit-label">Management</div>
-            <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="cockpit-label mb-0">Management</div>
+              <button onClick={() => setAddingManager(true)} className="text-muted-foreground hover:text-primary">
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="space-y-1 mt-1">
               {co.management.slice(0, 3).map(mg => (
                 <div key={mg.id} className="flex items-center gap-2 text-xs">
                   <span className="text-foreground font-medium w-32 truncate">{mg.name}</span>
@@ -231,8 +366,25 @@ const CallCockpit: React.FC = () => {
                   <span className="text-muted-foreground w-20">{mg.position}</span>
                   <span className="text-muted-foreground flex-1 truncate">{mg.externalNote}</span>
                   {mg.isDecisionMaker && <User className="w-3 h-3 text-primary" />}
+                  {isAdmin && !mg.isDecisionMaker && (
+                    <button
+                      onClick={() => setAsDecisionMaker(mg.name, mg.birthYear, 0, mg.position)}
+                      title="Set as Decision Maker"
+                      className="text-muted-foreground hover:text-primary"
+                    >
+                      <User className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               ))}
+              {addingManager && (
+                <div className="flex items-center gap-1 mt-1">
+                  <input value={newMgName} onChange={e => setNewMgName(e.target.value)} placeholder="Name" className="text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground w-28 focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <input value={newMgPos} onChange={e => setNewMgPos(e.target.value)} placeholder="Position" className="text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground w-20 focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <button onClick={addManager} className="text-xs text-primary hover:underline">Add</button>
+                  <button onClick={() => setAddingManager(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -275,10 +427,42 @@ const CallCockpit: React.FC = () => {
               rows={2}
               placeholder="DM comment..."
             />
-            <div className="flex flex-wrap gap-1">
+            {/* DM Tags */}
+            <div className="flex flex-wrap gap-1 items-center">
               {dm.tags.map(tag => (
-                <span key={tag} className="px-1.5 py-0.5 text-xs rounded bg-surface-2 text-primary">{tag}</span>
+                <span key={tag} className="px-1.5 py-0.5 text-xs rounded bg-surface-2 text-primary flex items-center gap-0.5">
+                  {tag}
+                  {editingDmTags && (
+                    <button onClick={() => updateCompany(co.id, { decisionMaker: { ...dm, tags: dm.tags.filter(t => t !== tag) } })} className="hover:text-destructive">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
+                </span>
               ))}
+              {editingDmTags ? (
+                <input
+                  autoFocus
+                  value={newDmTag}
+                  onChange={e => setNewDmTag(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newDmTag.trim()) {
+                      updateCompany(co.id, { decisionMaker: { ...dm, tags: [...dm.tags, newDmTag.trim()] } });
+                      setNewDmTag('');
+                    }
+                    if (e.key === 'Escape') { setEditingDmTags(false); setNewDmTag(''); }
+                  }}
+                  onBlur={() => {
+                    if (newDmTag.trim()) updateCompany(co.id, { decisionMaker: { ...dm, tags: [...dm.tags, newDmTag.trim()] } });
+                    setEditingDmTags(false); setNewDmTag('');
+                  }}
+                  className="w-16 text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="tag"
+                />
+              ) : (
+                <button onClick={() => setEditingDmTags(true)} className="text-muted-foreground hover:text-primary text-xs">
+                  <Plus className="w-3 h-3" />
+                </button>
+              )}
             </div>
 
             {/* Contact */}
@@ -293,9 +477,9 @@ const CallCockpit: React.FC = () => {
                   ☎️ {dm.direct}
                 </a>
               )}
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <a href={`mailto:${dm.email}`} className="text-xs text-primary hover:underline flex items-center gap-1">
                 <Mail className="w-3 h-3" /> {dm.email}
-              </div>
+              </a>
             </div>
           </div>
 
@@ -345,12 +529,7 @@ const CallCockpit: React.FC = () => {
                   />
                 )}
                 <label className="flex items-center gap-2 text-xs text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={co.certainPotential || false}
-                    onChange={e => updateCompany(co.id, { certainPotential: e.target.checked })}
-                    className="rounded border-border"
-                  />
+                  <input type="checkbox" checked={co.certainPotential || false} onChange={e => updateCompany(co.id, { certainPotential: e.target.checked })} className="rounded border-border" />
                   Certain Potential
                 </label>
               </div>
@@ -375,12 +554,7 @@ const CallCockpit: React.FC = () => {
                   />
                 )}
                 <label className="flex items-center gap-2 text-xs text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={co.certainPotential || false}
-                    onChange={e => updateCompany(co.id, { certainPotential: e.target.checked })}
-                    className="rounded border-border"
-                  />
+                  <input type="checkbox" checked={co.certainPotential || false} onChange={e => updateCompany(co.id, { certainPotential: e.target.checked })} className="rounded border-border" />
                   Certain Potential
                 </label>
               </div>
@@ -452,8 +626,8 @@ const CallCockpit: React.FC = () => {
               <div className="text-xs text-muted-foreground">{co.statusSpec}</div>
             )}
 
-            {/* Status comment (for statuses without special sub-status UI) */}
-            {isAdmin && !['kein Interesse', 'ad acta', 'on hold', 'zukünftiges Potenzial'].includes(co.status) && (
+            {/* Status free-text comment - always visible for all statuses */}
+            {isAdmin && (
               <input
                 value={co.statusComment}
                 onChange={e => updateCompany(co.id, { statusComment: e.target.value })}
@@ -482,11 +656,7 @@ const CallCockpit: React.FC = () => {
             <div className="cockpit-label">Quick Time</div>
             <div className="flex flex-wrap gap-1">
               {timeButtons.map(tb => (
-                <button
-                  key={tb.label}
-                  onClick={() => setNextContact(tb.fn())}
-                  className="time-button"
-                >
+                <button key={tb.label} onClick={() => setNextContact(tb.fn())} className="time-button">
                   {tb.label}
                 </button>
               ))}
@@ -502,7 +672,7 @@ const CallCockpit: React.FC = () => {
               onChange={e => setNote(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) handleSaveNote(); }}
               className="w-full text-xs text-foreground bg-surface-2 border border-border rounded p-1.5 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-              rows={note.split('\n').length > 1 ? Math.min(note.split('\n').length, 10) : 1}
+              rows={noteRows}
               placeholder="Add note... (Ctrl+Enter to save)"
             />
             {note && (
@@ -518,11 +688,7 @@ const CallCockpit: React.FC = () => {
               <div className="cockpit-label">Call Events</div>
               <div className="flex flex-wrap gap-1">
                 {callEvents.map(ev => (
-                  <button
-                    key={ev.label}
-                    onClick={() => handleCallEvent(ev.label, ev.preset)}
-                    className="event-button"
-                  >
+                  <button key={ev.label} onClick={() => handleCallEvent(ev.label, ev.preset)} className="event-button">
                     {ev.label}
                   </button>
                 ))}
@@ -565,18 +731,21 @@ const CallCockpit: React.FC = () => {
       {/* History */}
       <HistoryBlock companyId={co.id} />
 
-      {/* Pitch Modal */}
+      {/* Pitch Modal - near full screen */}
       {showPitch && campaign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80" onClick={() => setShowPitch(false)}>
-          <div className="bg-card border border-border rounded-lg p-6 max-w-lg w-full" onClick={e => e.stopPropagation()}>
+          <div className="bg-card border border-border rounded-lg p-6 w-[90vw] h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-foreground">{campaign.name} — Pitch</h3>
-              <button onClick={() => setShowPitch(false)} className="text-muted-foreground hover:text-foreground text-sm">✕</button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { /* save pitch - simulated */ }} className="text-xs text-primary hover:underline">Save</button>
+                <button onClick={() => setShowPitch(false)} className="text-muted-foreground hover:text-foreground text-sm">✕</button>
+              </div>
             </div>
             <textarea
-              defaultValue={campaign.pitchText}
-              className="w-full text-xs text-foreground bg-surface-2 border border-border rounded p-3 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-              rows={10}
+              value={pitchText}
+              onChange={e => setPitchText(e.target.value)}
+              className="flex-1 w-full text-sm text-foreground bg-surface-2 border border-border rounded p-4 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
           </div>
         </div>
