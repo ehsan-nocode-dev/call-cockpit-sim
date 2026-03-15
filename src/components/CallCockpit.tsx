@@ -103,23 +103,6 @@ const CallCockpit: React.FC = () => {
 
   const handleCallEvent = (label: string, preset: (() => Date) | null) => {
     if (!isAdmin) return;
-    // If there's a recent event, append to it instead of creating a new one
-    if (lastEventId) {
-      // Append to existing entry
-      const company = co;
-      const existingEntry = company.history.find(h => h.id === lastEventId);
-      if (existingEntry) {
-        const updatedHistory = company.history.map(h =>
-          h.id === lastEventId ? { ...h, content: `${h.content} → ${label}` } : h
-        );
-        updateCompany(co.id, { history: updatedHistory } as any);
-        if (preset) {
-          const nextDate = preset();
-          setNextContact(nextDate, false);
-        }
-        return;
-      }
-    }
     const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
       timestamp: new Date(),
@@ -128,6 +111,8 @@ const CallCockpit: React.FC = () => {
       user: 'Current User',
     });
     setLastEventId(entryId);
+    setEventNote('');
+    setEventNoteType('call');
     if (preset) {
       const nextDate = preset();
       setNextContact(nextDate, false);
@@ -135,12 +120,32 @@ const CallCockpit: React.FC = () => {
   };
 
   const handleEmailEvent = (label: string) => {
+    const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
       timestamp: new Date(),
       type: 'email',
       content: label,
       user: 'Current User',
     });
+    setLastEventId(entryId);
+    setEventNote('');
+    setEventNoteType('email');
+  };
+
+  const handleAppendEventNote = () => {
+    if (!eventNote.trim() || !lastEventId) return;
+    // Find the latest entry of the matching type and append the note
+    const latestEntries = co.history;
+    const lastEntry = latestEntries[latestEntries.length - 1];
+    if (lastEntry) {
+      const updatedHistory = co.history.map(h =>
+        h.id === lastEntry.id ? { ...h, content: `${h.content} — ${eventNote.trim()}` } : h
+      );
+      updateCompany(co.id, { history: updatedHistory } as any);
+    }
+    setEventNote('');
+    setEventNoteType(null);
+    setLastEventId(null);
   };
 
   const handleSaveNote = () => {
