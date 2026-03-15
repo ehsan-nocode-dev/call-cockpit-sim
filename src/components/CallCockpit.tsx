@@ -14,6 +14,8 @@ const CallCockpit: React.FC = () => {
   const [showPitch, setShowPitch] = useState(false);
   const [pitchText, setPitchText] = useState('');
   const [lastEventId, setLastEventId] = useState<string | null>(null);
+  const [eventNote, setEventNote] = useState('');
+  const [eventNoteType, setEventNoteType] = useState<'call' | 'email' | null>(null);
   const [addingShareholder, setAddingShareholder] = useState(false);
   const [addingManager, setAddingManager] = useState(false);
   const [newShName, setNewShName] = useState('');
