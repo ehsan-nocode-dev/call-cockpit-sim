@@ -772,20 +772,21 @@ const CallCockpit: React.FC = () => {
               )}
               {/* Inline note for call/email event */}
               {eventNoteType && (
-                <div className="flex gap-1 mt-2 pt-2 border-t border-border">
+                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
                   <input
+                    ref={eventNoteRef}
                     autoFocus
                     value={eventNote}
-                    onChange={e => setEventNote(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleAppendEventNote();
-                      if (e.key === 'Escape') { setEventNote(''); setEventNoteType(null); setLastEventId(null); }
-                    }}
+                    onChange={e => handleEventNoteChange(e.target.value)}
+                    onKeyDown={handleEventNoteKeyDown}
+                    onBlur={handleEventNoteBlur}
                     className="flex-1 text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="Add note to event... (Enter to save, Esc to dismiss)"
+                    placeholder="Add note… (Enter to finish, auto-saves)"
                   />
-                  <button onClick={handleAppendEventNote} className="text-xs text-primary hover:underline px-1">Save</button>
-                  <button onClick={() => { setEventNote(''); setEventNoteType(null); setLastEventId(null); }} className="text-xs text-muted-foreground hover:underline px-1">×</button>
+                  <span className="text-[10px] text-muted-foreground w-12 text-right">
+                    {eventNoteSaved === 'saving' && 'Saving…'}
+                    {eventNoteSaved === 'saved' && '✓ Saved'}
+                  </span>
                 </div>
               )}
             </div>
