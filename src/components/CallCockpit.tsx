@@ -40,7 +40,7 @@ const CallCockpit: React.FC = () => {
   const co = selectedCompany;
   const dm = co?.decisionMaker;
   const campaign = co ? campaigns.find(c => c.id === co.campaignId) : null;
-  const campaign = campaigns.find(c => c.id === co.campaignId);
+  
 
   const setNextContact = (date: Date, autoEntry = true) => {
     updateCompany(co.id, { nextContact: date });
