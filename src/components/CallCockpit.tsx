@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { format, addMinutes, addHours, setHours, setMinutes } from 'date-fns';
 import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X, Trash2 } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
@@ -16,6 +16,9 @@ const CallCockpit: React.FC = () => {
   const [lastEventId, setLastEventId] = useState<string | null>(null);
   const [eventNote, setEventNote] = useState('');
   const [eventNoteType, setEventNoteType] = useState<'call' | 'email' | null>(null);
+  const [eventNoteSaved, setEventNoteSaved] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eventNoteRef = useRef<HTMLInputElement>(null);
   const [addingShareholder, setAddingShareholder] = useState(false);
   const [addingManager, setAddingManager] = useState(false);
   const [newShName, setNewShName] = useState('');
@@ -34,17 +37,10 @@ const CallCockpit: React.FC = () => {
     setLastEventId(null);
   }, [selectedCompany?.id]);
 
-  if (!selectedCompany) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Select a company from the queue
-      </div>
-    );
-  }
-
   const co = selectedCompany;
-  const dm = co.decisionMaker;
-  const campaign = campaigns.find(c => c.id === co.campaignId);
+  const dm = co?.decisionMaker;
+  const campaign = co ? campaigns.find(c => c.id === co.campaignId) : null;
+  
 
   const setNextContact = (date: Date, autoEntry = true) => {
     updateCompany(co.id, { nextContact: date });
@@ -101,8 +97,75 @@ const CallCockpit: React.FC = () => {
     'Info@ email', 'Email bounce', 'Reply received', 'DM responded',
   ];
 
+  const saveEventNote = useCallback((noteText: string, entryId: string | null) => {
+    if (!noteText.trim() || !entryId || !co) return;
+    setEventNoteSaved('saving');
+    const targetEntry = co.history.find(h => h.id === entryId);
+    if (targetEntry) {
+      const baseContent = targetEntry.content.split(' — ')[0];
+      const updatedContent = `${baseContent} — ${noteText.trim()}`;
+      const updatedHistory = co.history.map(h =>
+        h.id === entryId ? { ...h, content: updatedContent } : h
+      );
+      updateCompany(co.id, { history: updatedHistory } as any);
+    }
+    setTimeout(() => setEventNoteSaved('saved'), 100);
+    setTimeout(() => setEventNoteSaved('idle'), 1500);
+  }, [co, updateCompany]);
+
+  const clearEventNote = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setEventNote('');
+    setEventNoteType(null);
+    setLastEventId(null);
+    setEventNoteSaved('idle');
+  }, []);
+
+  const handleEventNoteChange = useCallback((value: string) => {
+    setEventNote(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim()) {
+      debounceRef.current = setTimeout(() => {
+        saveEventNote(value, lastEventId);
+      }, 1000);
+    }
+  }, [lastEventId, saveEventNote]);
+
+  const handleEventNoteBlur = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (eventNote.trim()) {
+      saveEventNote(eventNote, lastEventId);
+    }
+  }, [eventNote, lastEventId, saveEventNote]);
+
+  const handleEventNoteKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (eventNote.trim()) saveEventNote(eventNote, lastEventId);
+      clearEventNote();
+    }
+    if (e.key === 'Escape') {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (eventNote.trim()) saveEventNote(eventNote, lastEventId);
+      clearEventNote();
+    }
+  }, [eventNote, lastEventId, saveEventNote, clearEventNote]);
+
+  if (!co || !dm) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Select a company from the queue
+      </div>
+    );
+  }
+
   const handleCallEvent = (label: string, preset: (() => Date) | null) => {
     if (!isAdmin) return;
+    if (eventNote.trim() && lastEventId) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      saveEventNote(eventNote, lastEventId);
+    }
     const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
       timestamp: new Date(),
@@ -113,6 +176,8 @@ const CallCockpit: React.FC = () => {
     setLastEventId(entryId);
     setEventNote('');
     setEventNoteType('call');
+    setEventNoteSaved('idle');
+    setTimeout(() => eventNoteRef.current?.focus(), 50);
     if (preset) {
       const nextDate = preset();
       setNextContact(nextDate, false);
@@ -120,6 +185,10 @@ const CallCockpit: React.FC = () => {
   };
 
   const handleEmailEvent = (label: string) => {
+    if (eventNote.trim() && lastEventId) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      saveEventNote(eventNote, lastEventId);
+    }
     const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
       timestamp: new Date(),
@@ -130,22 +199,8 @@ const CallCockpit: React.FC = () => {
     setLastEventId(entryId);
     setEventNote('');
     setEventNoteType('email');
-  };
-
-  const handleAppendEventNote = () => {
-    if (!eventNote.trim() || !lastEventId) return;
-    // Find the latest entry of the matching type and append the note
-    const latestEntries = co.history;
-    const lastEntry = latestEntries[latestEntries.length - 1];
-    if (lastEntry) {
-      const updatedHistory = co.history.map(h =>
-        h.id === lastEntry.id ? { ...h, content: `${h.content} — ${eventNote.trim()}` } : h
-      );
-      updateCompany(co.id, { history: updatedHistory } as any);
-    }
-    setEventNote('');
-    setEventNoteType(null);
-    setLastEventId(null);
+    setEventNoteSaved('idle');
+    setTimeout(() => eventNoteRef.current?.focus(), 50);
   };
 
   const handleSaveNote = () => {
@@ -718,20 +773,21 @@ const CallCockpit: React.FC = () => {
               )}
               {/* Inline note for call/email event */}
               {eventNoteType && (
-                <div className="flex gap-1 mt-2 pt-2 border-t border-border">
+                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
                   <input
+                    ref={eventNoteRef}
                     autoFocus
                     value={eventNote}
-                    onChange={e => setEventNote(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleAppendEventNote();
-                      if (e.key === 'Escape') { setEventNote(''); setEventNoteType(null); setLastEventId(null); }
-                    }}
+                    onChange={e => handleEventNoteChange(e.target.value)}
+                    onKeyDown={handleEventNoteKeyDown}
+                    onBlur={handleEventNoteBlur}
                     className="flex-1 text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="Add note to event... (Enter to save, Esc to dismiss)"
+                    placeholder="Add note… (Enter to finish, auto-saves)"
                   />
-                  <button onClick={handleAppendEventNote} className="text-xs text-primary hover:underline px-1">Save</button>
-                  <button onClick={() => { setEventNote(''); setEventNoteType(null); setLastEventId(null); }} className="text-xs text-muted-foreground hover:underline px-1">×</button>
+                  <span className="text-[10px] text-muted-foreground w-12 text-right">
+                    {eventNoteSaved === 'saving' && 'Saving…'}
+                    {eventNoteSaved === 'saved' && '✓ Saved'}
+                  </span>
                 </div>
               )}
             </div>
@@ -750,20 +806,21 @@ const CallCockpit: React.FC = () => {
               </div>
               {/* Inline note for email event (assistant) */}
               {eventNoteType === 'email' && (
-                <div className="flex gap-1 mt-2 pt-2 border-t border-border">
+                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
                   <input
+                    ref={eventNoteRef}
                     autoFocus
                     value={eventNote}
-                    onChange={e => setEventNote(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleAppendEventNote();
-                      if (e.key === 'Escape') { setEventNote(''); setEventNoteType(null); setLastEventId(null); }
-                    }}
+                    onChange={e => handleEventNoteChange(e.target.value)}
+                    onKeyDown={handleEventNoteKeyDown}
+                    onBlur={handleEventNoteBlur}
                     className="flex-1 text-xs bg-surface-2 border border-border rounded px-2 py-1 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="Add note to event... (Enter to save, Esc to dismiss)"
+                    placeholder="Add note… (Enter to finish, auto-saves)"
                   />
-                  <button onClick={handleAppendEventNote} className="text-xs text-primary hover:underline px-1">Save</button>
-                  <button onClick={() => { setEventNote(''); setEventNoteType(null); setLastEventId(null); }} className="text-xs text-muted-foreground hover:underline px-1">×</button>
+                  <span className="text-[10px] text-muted-foreground w-12 text-right">
+                    {eventNoteSaved === 'saving' && 'Saving…'}
+                    {eventNoteSaved === 'saved' && '✓ Saved'}
+                  </span>
                 </div>
               )}
             </div>
