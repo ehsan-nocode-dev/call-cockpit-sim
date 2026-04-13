@@ -104,8 +104,67 @@ const CallCockpit: React.FC = () => {
     'Info@ email', 'Email bounce', 'Reply received', 'DM responded',
   ];
 
+  const saveEventNote = useCallback((noteText: string, entryId: string | null) => {
+    if (!noteText.trim() || !entryId) return;
+    setEventNoteSaved('saving');
+    const targetEntry = co.history.find(h => h.id === entryId);
+    if (targetEntry) {
+      const baseContent = targetEntry.content.split(' — ')[0];
+      const updatedContent = `${baseContent} — ${noteText.trim()}`;
+      const updatedHistory = co.history.map(h =>
+        h.id === entryId ? { ...h, content: updatedContent } : h
+      );
+      updateCompany(co.id, { history: updatedHistory } as any);
+    }
+    setTimeout(() => setEventNoteSaved('saved'), 100);
+    setTimeout(() => setEventNoteSaved('idle'), 1500);
+  }, [co, updateCompany]);
+
+  const clearEventNote = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setEventNote('');
+    setEventNoteType(null);
+    setLastEventId(null);
+    setEventNoteSaved('idle');
+  }, []);
+
+  const handleEventNoteChange = useCallback((value: string) => {
+    setEventNote(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim()) {
+      debounceRef.current = setTimeout(() => {
+        saveEventNote(value, lastEventId);
+      }, 1000);
+    }
+  }, [lastEventId, saveEventNote]);
+
+  const handleEventNoteBlur = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (eventNote.trim()) {
+      saveEventNote(eventNote, lastEventId);
+    }
+  }, [eventNote, lastEventId, saveEventNote]);
+
+  const handleEventNoteKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (eventNote.trim()) saveEventNote(eventNote, lastEventId);
+      clearEventNote();
+    }
+    if (e.key === 'Escape') {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (eventNote.trim()) saveEventNote(eventNote, lastEventId);
+      clearEventNote();
+    }
+  }, [eventNote, lastEventId, saveEventNote, clearEventNote]);
+
   const handleCallEvent = (label: string, preset: (() => Date) | null) => {
     if (!isAdmin) return;
+    if (eventNote.trim() && lastEventId) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      saveEventNote(eventNote, lastEventId);
+    }
     const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
       timestamp: new Date(),
@@ -116,6 +175,8 @@ const CallCockpit: React.FC = () => {
     setLastEventId(entryId);
     setEventNote('');
     setEventNoteType('call');
+    setEventNoteSaved('idle');
+    setTimeout(() => eventNoteRef.current?.focus(), 50);
     if (preset) {
       const nextDate = preset();
       setNextContact(nextDate, false);
@@ -123,6 +184,10 @@ const CallCockpit: React.FC = () => {
   };
 
   const handleEmailEvent = (label: string) => {
+    if (eventNote.trim() && lastEventId) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      saveEventNote(eventNote, lastEventId);
+    }
     const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
       timestamp: new Date(),
@@ -133,22 +198,8 @@ const CallCockpit: React.FC = () => {
     setLastEventId(entryId);
     setEventNote('');
     setEventNoteType('email');
-  };
-
-  const handleAppendEventNote = () => {
-    if (!eventNote.trim() || !lastEventId) return;
-    // Find the latest entry of the matching type and append the note
-    const latestEntries = co.history;
-    const lastEntry = latestEntries[latestEntries.length - 1];
-    if (lastEntry) {
-      const updatedHistory = co.history.map(h =>
-        h.id === lastEntry.id ? { ...h, content: `${h.content} — ${eventNote.trim()}` } : h
-      );
-      updateCompany(co.id, { history: updatedHistory } as any);
-    }
-    setEventNote('');
-    setEventNoteType(null);
-    setLastEventId(null);
+    setEventNoteSaved('idle');
+    setTimeout(() => eventNoteRef.current?.focus(), 50);
   };
 
   const handleSaveNote = () => {
