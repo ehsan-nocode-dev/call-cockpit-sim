@@ -152,6 +152,14 @@ const CallCockpit: React.FC = () => {
     }
   }, [eventNote, lastEventId, saveEventNote, clearEventNote]);
 
+  if (!co || !dm) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Select a company from the queue
+      </div>
+    );
+  }
+
   const handleCallEvent = (label: string, preset: (() => Date) | null) => {
     if (!isAdmin) return;
     if (eventNote.trim() && lastEventId) {
