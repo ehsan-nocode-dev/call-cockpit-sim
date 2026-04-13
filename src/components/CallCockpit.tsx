@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { format, addMinutes, addHours, setHours, setMinutes } from 'date-fns';
 import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X, Trash2 } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
