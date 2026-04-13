@@ -37,16 +37,9 @@ const CallCockpit: React.FC = () => {
     setLastEventId(null);
   }, [selectedCompany?.id]);
 
-  if (!selectedCompany) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Select a company from the queue
-      </div>
-    );
-  }
-
   const co = selectedCompany;
-  const dm = co.decisionMaker;
+  const dm = co?.decisionMaker;
+  const campaign = co ? campaigns.find(c => c.id === co.campaignId) : null;
   const campaign = campaigns.find(c => c.id === co.campaignId);
 
   const setNextContact = (date: Date, autoEntry = true) => {
