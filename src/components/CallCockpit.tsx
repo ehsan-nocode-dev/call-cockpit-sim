@@ -16,6 +16,9 @@ const CallCockpit: React.FC = () => {
   const [lastEventId, setLastEventId] = useState<string | null>(null);
   const [eventNote, setEventNote] = useState('');
   const [eventNoteType, setEventNoteType] = useState<'call' | 'email' | null>(null);
+  const [eventNoteSaved, setEventNoteSaved] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eventNoteRef = useRef<HTMLInputElement>(null);
   const [addingShareholder, setAddingShareholder] = useState(false);
   const [addingManager, setAddingManager] = useState(false);
   const [newShName, setNewShName] = useState('');
