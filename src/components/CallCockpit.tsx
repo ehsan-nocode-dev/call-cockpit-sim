@@ -97,6 +97,14 @@ const CallCockpit: React.FC = () => {
     'Info@ email', 'Email bounce', 'Reply received', 'DM responded',
   ];
 
+  if (!co) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Select a company from the queue
+      </div>
+    );
+  }
+
   const saveEventNote = useCallback((noteText: string, entryId: string | null) => {
     if (!noteText.trim() || !entryId) return;
     setEventNoteSaved('saving');
