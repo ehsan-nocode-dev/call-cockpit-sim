@@ -9,7 +9,7 @@ interface AppState {
   setSelectedCompanyId: (id: string | null) => void;
   selectedCompany: Company | null;
   updateCompany: (id: string, updates: Partial<Company>) => void;
-  addHistoryEntry: (companyId: string, entry: Omit<HistoryEntry, 'id'>) => void;
+  addHistoryEntry: (companyId: string, entry: Omit<HistoryEntry, 'id'> & { id?: string }) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
