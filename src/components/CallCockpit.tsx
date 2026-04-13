@@ -168,6 +168,7 @@ const CallCockpit: React.FC = () => {
     }
     const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
+      id: entryId,
       timestamp: new Date(),
       type: 'call',
       content: label,
@@ -191,6 +192,7 @@ const CallCockpit: React.FC = () => {
     }
     const entryId = `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     addHistoryEntry(co.id, {
+      id: entryId,
       timestamp: new Date(),
       type: 'email',
       content: label,
