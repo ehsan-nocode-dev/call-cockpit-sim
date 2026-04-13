@@ -9,7 +9,7 @@ interface AppState {
   setSelectedCompanyId: (id: string | null) => void;
   selectedCompany: Company | null;
   updateCompany: (id: string, updates: Partial<Company>) => void;
-  addHistoryEntry: (companyId: string, entry: Omit<HistoryEntry, 'id'>) => void;
+  addHistoryEntry: (companyId: string, entry: Omit<HistoryEntry, 'id'> & { id?: string }) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -31,12 +31,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCompanies(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   }, []);
 
-  const addHistoryEntry = useCallback((companyId: string, entry: Omit<HistoryEntry, 'id'>) => {
+  const addHistoryEntry = useCallback((companyId: string, entry: Omit<HistoryEntry, 'id'> & { id?: string }) => {
+    const entryId = entry.id || `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setCompanies(prev => prev.map(c => {
       if (c.id !== companyId) return c;
-      const newEntry: HistoryEntry = { ...entry, id: `h-${Date.now()}-${Math.random().toString(36).slice(2)}` };
+      const newEntry: HistoryEntry = { ...entry, id: entryId };
       return { ...c, history: [...c.history, newEntry] };
     }));
+    return entryId;
   }, []);
 
   return (
