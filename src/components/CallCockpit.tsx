@@ -765,7 +765,7 @@ const CallCockpit: React.FC = () => {
               <button onClick={() => setShowCallEvents(!showCallEvents)} className="cockpit-label flex items-center gap-1 cursor-pointer hover:text-primary w-full text-left">
                 Call Events {showCallEvents ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
-              {showCallEvents && (
+              {showCallEvents && (<>
               <div className="flex flex-wrap gap-1">
                 {callEvents.map(ev => (
                   <span key={ev.label} className="inline-flex items-center gap-0">
@@ -826,7 +826,7 @@ const CallCockpit: React.FC = () => {
                   </span>
                 </div>
               )}
-              {/* end showCallEvents */}
+              </>)}
             </div>
           )}
 
