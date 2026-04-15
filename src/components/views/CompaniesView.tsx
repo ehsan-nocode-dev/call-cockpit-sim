@@ -96,6 +96,7 @@ const CompaniesView: React.FC = () => {
           case 'netProfit': aVal = a.netProfit; bVal = b.netProfit; break;
           case 'revenue': aVal = a.revenue; bVal = b.revenue; break;
           case 'lfs': aVal = a.lastAnnualFinancials; bVal = b.lastAnnualFinancials; break;
+          case 'campaign': aVal = campaigns.find(ca => ca.id === a.campaignId)?.name || ''; bVal = campaigns.find(ca => ca.id === b.campaignId)?.name || ''; break;
           default: aVal = a.name; bVal = b.name;
         }
         const cmp = aVal.localeCompare(bVal, undefined, { numeric: true });
@@ -262,6 +263,7 @@ const CompaniesView: React.FC = () => {
                     )}
                   </td>
                 )}
+                {isVis('country') && <td>{c.country}</td>}
                 {isVis('city') && <td>{c.city}</td>}
                 {isVis('contact') && (
                   <td>
@@ -355,6 +357,14 @@ const CompaniesView: React.FC = () => {
                   className="mt-1 w-full h-10 rounded-md border border-input px-3 text-sm text-foreground" style={{ background: 'hsl(var(--surface-2))' }}>
                   <option value="">Select</option>
                   {['A', 'B', 'C', 'D', 'E'].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-foreground">Campaign</label>
+                <select value={form.campaignId} onChange={e => setForm(f => ({ ...f, campaignId: e.target.value }))}
+                  className="mt-1 w-full h-10 rounded-md border border-input px-3 text-sm text-foreground" style={{ background: 'hsl(var(--surface-2))' }}>
+                  <option value="">— No Campaign —</option>
+                  {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
