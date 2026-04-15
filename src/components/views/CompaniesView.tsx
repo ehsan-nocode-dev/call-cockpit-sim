@@ -56,7 +56,7 @@ const CompaniesView: React.FC = () => {
   // Add form
   const [form, setForm] = useState({
     name: '', phonePrimary: '', phoneSecondary: '', website: '', city: '', country: '',
-    employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '',
+    employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '', campaignId: '',
   });
 
   const toggleSort = (key: string) => {
