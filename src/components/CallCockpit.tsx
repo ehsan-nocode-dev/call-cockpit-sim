@@ -762,7 +762,10 @@ const CallCockpit: React.FC = () => {
           {/* Call Quick Events */}
           {isAdmin && (
             <div className="cockpit-section">
-              <div className="cockpit-label">Call Events</div>
+              <button onClick={() => setShowCallEvents(!showCallEvents)} className="cockpit-label flex items-center gap-1 cursor-pointer hover:text-primary w-full text-left">
+                Call Events {showCallEvents ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              {showCallEvents && (
               <div className="flex flex-wrap gap-1">
                 {callEvents.map(ev => (
                   <span key={ev.label} className="inline-flex items-center gap-0">
