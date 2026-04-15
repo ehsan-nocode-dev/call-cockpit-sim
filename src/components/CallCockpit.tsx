@@ -466,8 +466,8 @@ const CallCockpit: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN - Decision Maker + Status */}
-        <div className="space-y-3">
+        {/* MIDDLE COLUMN - Decision Maker + Status */}
+        <div className="space-y-3 overflow-auto px-1">
           {/* Decision Maker */}
           <div className="cockpit-section space-y-2">
             <div className="cockpit-label">Decision Maker</div>
