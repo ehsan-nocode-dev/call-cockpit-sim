@@ -23,8 +23,17 @@ const CompaniesView: React.FC = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
 
   // Column visibility
+  // Campaign-company relationship tracking (prevents duplicates)
+  const [campaignAssignments, setCampaignAssignments] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    companies.forEach(c => { map[c.id] = c.campaignId; });
+    return map;
+  });
+  const [editingCampaign, setEditingCampaign] = useState<string | null>(null);
+
   const allColumns = [
     { key: 'name', label: 'Name', alwaysVisible: true },
+    { key: 'campaign', label: 'Campaign' },
     { key: 'country', label: 'Country' },
     { key: 'city', label: 'City' },
     { key: 'contact', label: 'Contact' },
