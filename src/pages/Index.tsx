@@ -35,6 +35,8 @@ const Index = () => {
             <CompaniesView />
           ) : activeView === 'campaigns' ? (
             <CampaignsView />
+          ) : activeView === 'assignments' ? (
+            <CampaignAssignmentsView />
           ) : activeView === 'opportunities' ? (
             <OpportunitiesView />
           ) : activeView === 'people' ? (
