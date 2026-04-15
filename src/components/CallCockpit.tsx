@@ -12,6 +12,8 @@ const CallCockpit: React.FC = () => {
   const [note, setNote] = useState('');
   const [showEmailEvents, setShowEmailEvents] = useState(false);
   const [showPitch, setShowPitch] = useState(false);
+  const [showCallEvents, setShowCallEvents] = useState(true);
+  const [showEmailEventsSection, setShowEmailEventsSection] = useState(true);
   const [pitchText, setPitchText] = useState('');
   const [lastEventId, setLastEventId] = useState<string | null>(null);
   const [eventNote, setEventNote] = useState('');
@@ -271,12 +273,13 @@ const CallCockpit: React.FC = () => {
   const noteLines = note.split('\n').length;
   const noteRows = Math.max(2, Math.min(noteLines + 1, 10));
 
+
   return (
-    <div className="h-full overflow-auto p-3 space-y-3">
-      {/* Two-column top section */}
-      <div className="grid grid-cols-2 gap-3">
+    <div className="h-full overflow-hidden flex flex-col p-3">
+      {/* Three-column layout */}
+      <div className="flex-1 grid grid-cols-3 gap-3 overflow-hidden">
         {/* LEFT COLUMN - Company Block */}
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-auto pr-1">
           {/* Campaign */}
           <div className="cockpit-section">
             <div className="flex items-center justify-between">
@@ -463,8 +466,8 @@ const CallCockpit: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN - Decision Maker + Status */}
-        <div className="space-y-3">
+        {/* MIDDLE COLUMN - Decision Maker + Status */}
+        <div className="space-y-3 overflow-auto px-1">
           {/* Decision Maker */}
           <div className="cockpit-section space-y-2">
             <div className="cockpit-label">Decision Maker</div>
@@ -759,7 +762,10 @@ const CallCockpit: React.FC = () => {
           {/* Call Quick Events */}
           {isAdmin && (
             <div className="cockpit-section">
-              <div className="cockpit-label">Call Events</div>
+              <button onClick={() => setShowCallEvents(!showCallEvents)} className="cockpit-label flex items-center gap-1 cursor-pointer hover:text-primary w-full text-left">
+                Call Events {showCallEvents ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              {showCallEvents && (<>
               <div className="flex flex-wrap gap-1">
                 {callEvents.map(ev => (
                   <span key={ev.label} className="inline-flex items-center gap-0">
@@ -820,13 +826,17 @@ const CallCockpit: React.FC = () => {
                   </span>
                 </div>
               )}
+              </>)}
             </div>
           )}
 
           {/* Email events for assistant */}
           {!isAdmin && (
             <div className="cockpit-section">
-              <div className="cockpit-label">Email Events</div>
+              <button onClick={() => setShowEmailEventsSection(!showEmailEventsSection)} className="cockpit-label flex items-center gap-1 cursor-pointer hover:text-primary w-full text-left">
+                Email Events {showEmailEventsSection ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              {showEmailEventsSection && (<>
               <div className="flex flex-wrap gap-1">
                 {emailEvents.map(ev => (
                   <span key={ev} className="inline-flex items-center gap-0">
@@ -862,13 +872,16 @@ const CallCockpit: React.FC = () => {
                   </span>
                 </div>
               )}
+              </>)}
             </div>
           )}
         </div>
-      </div>
 
-      {/* History */}
-      <HistoryBlock companyId={co.id} />
+        {/* RIGHT COLUMN - History */}
+        <div className="overflow-auto pl-1">
+          <HistoryBlock companyId={co.id} />
+        </div>
+      </div>
 
       {/* Pitch Modal - near full screen */}
       {showPitch && campaign && (
