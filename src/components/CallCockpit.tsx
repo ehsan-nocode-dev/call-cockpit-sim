@@ -826,7 +826,7 @@ const CallCockpit: React.FC = () => {
                   </span>
                 </div>
               )}
-              )}
+              {/* end showCallEvents */}
             </div>
           )}
 
