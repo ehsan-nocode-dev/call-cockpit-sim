@@ -829,9 +829,18 @@ const CallCockpit: React.FC = () => {
               <div className="cockpit-label">Email Events</div>
               <div className="flex flex-wrap gap-1">
                 {emailEvents.map(ev => (
-                  <button key={ev} onClick={() => handleEmailEvent(ev)} className="event-button">
-                    {ev}
-                  </button>
+                  <span key={ev} className="inline-flex items-center gap-0">
+                    <button onClick={() => handleEmailEvent(ev, false)} className="event-button rounded-r-none pr-1">
+                      {ev}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEmailEvent(ev, true); }}
+                      className="event-button rounded-l-none pl-0.5 pr-1 border-l border-border/50 opacity-60 hover:opacity-100"
+                      title="Log with note"
+                    >
+                      <MessageSquarePlus className="w-3 h-3" />
+                    </button>
+                  </span>
                 ))}
               </div>
               {/* Inline note for email event (assistant) */}
