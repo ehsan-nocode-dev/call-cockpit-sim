@@ -146,8 +146,14 @@ const CompaniesView: React.FC = () => {
     </th>
   );
 
+  const handleRowClick = (companyId: string) => {
+    setSelectedCompanyId(companyId);
+    setDetailOpen(true);
+  };
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className={`h-full flex ${detailOpen ? 'flex-row' : 'flex-col'} overflow-hidden`}>
+      <div className={`flex flex-col overflow-hidden ${detailOpen ? 'w-1/2 border-r border-border' : 'flex-1'}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border" style={{ background: 'hsl(var(--surface-1))' }}>
         <h2 className="text-lg font-semibold text-foreground">Company</h2>
