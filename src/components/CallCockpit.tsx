@@ -279,7 +279,7 @@ const CallCockpit: React.FC = () => {
       {/* Three-column layout */}
       <div className="flex-1 grid grid-cols-3 gap-3 overflow-hidden">
         {/* LEFT COLUMN - Company Block */}
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-auto pr-1">
           {/* Campaign */}
           <div className="cockpit-section">
             <div className="flex items-center justify-between">
