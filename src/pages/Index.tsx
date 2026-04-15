@@ -4,6 +4,12 @@ import AppSidebar from '@/components/AppSidebar';
 import CallQueue from '@/components/CallQueue';
 import CallCockpit from '@/components/CallCockpit';
 import PlaceholderView from '@/components/PlaceholderView';
+import CompaniesView from '@/components/views/CompaniesView';
+import CampaignsView from '@/components/views/CampaignsView';
+import OpportunitiesView from '@/components/views/OpportunitiesView';
+import PeopleView from '@/components/views/PeopleView';
+import UsersView from '@/components/views/UsersView';
+import SettingsView from '@/components/views/SettingsView';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 const Index = () => {
@@ -24,6 +30,18 @@ const Index = () => {
                 <CallCockpit />
               </ResizablePanel>
             </ResizablePanelGroup>
+          ) : activeView === 'companies' ? (
+            <CompaniesView />
+          ) : activeView === 'campaigns' ? (
+            <CampaignsView />
+          ) : activeView === 'opportunities' ? (
+            <OpportunitiesView />
+          ) : activeView === 'people' ? (
+            <PeopleView />
+          ) : activeView === 'users' ? (
+            <UsersView />
+          ) : activeView === 'settings' ? (
+            <SettingsView />
           ) : (
             <PlaceholderView viewId={activeView} />
           )}

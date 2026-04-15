@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Phone, Building2, Megaphone, Target, Upload, Shield, UserCog } from 'lucide-react';
+import { Phone, Building2, Megaphone, Target, Upload, Shield, UserCog, Users, Settings, Contact } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
 
 const navItems = [
@@ -7,7 +7,10 @@ const navItems = [
   { id: 'companies', label: 'Companies', icon: Building2 },
   { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
   { id: 'opportunities', label: 'Opportunities', icon: Target },
+  { id: 'people', label: 'People', icon: Contact },
+  { id: 'users', label: 'Users', icon: Users },
   { id: 'import', label: 'Import', icon: Upload },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 const AppSidebar: React.FC<{ activeView: string; onViewChange: (id: string) => void }> = ({ activeView, onViewChange }) => {
