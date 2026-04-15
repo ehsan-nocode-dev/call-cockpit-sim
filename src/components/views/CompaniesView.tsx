@@ -12,9 +12,10 @@ import CallCockpit from '@/components/CallCockpit';
 const countryList = ['DE', 'SE', 'CH', 'UK', 'NO', 'AT', 'DK', 'FI', 'US', 'FR', 'IT', 'ES', 'NL', 'BE', 'PL', 'CZ'];
 
 const CompaniesView: React.FC = () => {
-  const { companies, role, updateCompany } = useAppState();
+  const { companies, role, updateCompany, setSelectedCompanyId, selectedCompanyId } = useAppState();
   const isAdmin = role === 'admin';
   const { toast } = useToast();
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // Search & sort
   const [search, setSearch] = useState('');
