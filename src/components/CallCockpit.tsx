@@ -833,7 +833,10 @@ const CallCockpit: React.FC = () => {
           {/* Email events for assistant */}
           {!isAdmin && (
             <div className="cockpit-section">
-              <div className="cockpit-label">Email Events</div>
+              <button onClick={() => setShowEmailEventsSection(!showEmailEventsSection)} className="cockpit-label flex items-center gap-1 cursor-pointer hover:text-primary w-full text-left">
+                Email Events {showEmailEventsSection ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              {showEmailEventsSection && (<>
               <div className="flex flex-wrap gap-1">
                 {emailEvents.map(ev => (
                   <span key={ev} className="inline-flex items-center gap-0">
@@ -869,13 +872,16 @@ const CallCockpit: React.FC = () => {
                   </span>
                 </div>
               )}
+              </>)}
             </div>
           )}
         </div>
-      </div>
 
-      {/* History */}
-      <HistoryBlock companyId={co.id} />
+        {/* RIGHT COLUMN - History */}
+        <div className="overflow-auto pl-1">
+          <HistoryBlock companyId={co.id} />
+        </div>
+      </div>
 
       {/* Pitch Modal - near full screen */}
       {showPitch && campaign && (
