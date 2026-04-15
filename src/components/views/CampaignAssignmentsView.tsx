@@ -347,7 +347,7 @@ const CampaignAssignmentsView: React.FC = () => {
       {/* Delete Confirm */}
       <ConfirmDialog
         open={deleteConfirm.open}
-        onClose={() => setDeleteConfirm({ open: false, id: '', label: '' })}
+        onOpenChange={() => setDeleteConfirm({ open: false, id: '', label: '' })}
         onConfirm={() => handleDelete(deleteConfirm.id)}
         title="Remove Assignment?"
         description={`Remove the assignment "${deleteConfirm.label}"? This will unlink the company from the campaign.`}

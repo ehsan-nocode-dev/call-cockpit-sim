@@ -250,7 +250,7 @@ const CampaignsView: React.FC = () => {
       {/* Archive Confirm */}
       <ConfirmDialog
         open={archiveConfirm.open}
-        onClose={() => setArchiveConfirm({ open: false, id: '', name: '' })}
+        onOpenChange={() => setArchiveConfirm({ open: false, id: '', name: '' })}
         onConfirm={() => {
           const was = campaignStatuses[archiveConfirm.id];
           setCampaignStatuses(prev => ({ ...prev, [archiveConfirm.id]: was === 'Archived' ? 'Active' : 'Archived' }));
@@ -264,7 +264,7 @@ const CampaignsView: React.FC = () => {
       {/* Delete Confirm */}
       <ConfirmDialog
         open={deleteConfirm.open}
-        onClose={() => setDeleteConfirm({ open: false, id: '', name: '' })}
+        onOpenChange={() => setDeleteConfirm({ open: false, id: '', name: '' })}
         onConfirm={() => {
           toast({ title: 'Campaign Deleted', description: `"${deleteConfirm.name}" has been removed.`, variant: 'destructive' });
           setDeleteConfirm({ open: false, id: '', name: '' });
