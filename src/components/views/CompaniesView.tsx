@@ -211,6 +211,7 @@ const CompaniesView: React.FC = () => {
             <tr>
               {isVis('name') && <ThSortable col="name">Name</ThSortable>}
               {isVis('campaign') && <ThSortable col="campaign">Campaign</ThSortable>}
+              {isVis('country') && <ThSortable col="country">Country</ThSortable>}
               {isVis('city') && <ThSortable col="city">City</ThSortable>}
               {isVis('contact') && <th>Contact</th>}
               {isVis('ebit') && <ThSortable col="ebit">EBIT</ThSortable>}
