@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAppState } from '@/context/AppContext';
-import { Company, campaigns } from '@/data/mockData';
+import { Company, campaigns, Campaign } from '@/data/mockData';
 import { Search, SlidersHorizontal, ChevronUp, ChevronDown, Eye, X, Plus, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 const countryList = ['DE', 'SE', 'CH', 'UK', 'NO', 'AT', 'DK', 'FI', 'US', 'FR', 'IT', 'ES', 'NL', 'BE', 'PL', 'CZ'];
 
 const CompaniesView: React.FC = () => {
-  const { companies, role } = useAppState();
+  const { companies, role, updateCompany } = useAppState();
   const isAdmin = role === 'admin';
   const { toast } = useToast();
 
@@ -23,8 +23,17 @@ const CompaniesView: React.FC = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
 
   // Column visibility
+  // Campaign-company relationship tracking (prevents duplicates)
+  const [campaignAssignments, setCampaignAssignments] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    companies.forEach(c => { map[c.id] = c.campaignId; });
+    return map;
+  });
+  const [editingCampaign, setEditingCampaign] = useState<string | null>(null);
+
   const allColumns = [
     { key: 'name', label: 'Name', alwaysVisible: true },
+    { key: 'campaign', label: 'Campaign' },
     { key: 'country', label: 'Country' },
     { key: 'city', label: 'City' },
     { key: 'contact', label: 'Contact' },
@@ -47,7 +56,7 @@ const CompaniesView: React.FC = () => {
   // Add form
   const [form, setForm] = useState({
     name: '', phonePrimary: '', phoneSecondary: '', website: '', city: '', country: '',
-    employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '',
+    employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '', campaignId: '',
   });
 
   const toggleSort = (key: string) => {
@@ -87,6 +96,7 @@ const CompaniesView: React.FC = () => {
           case 'netProfit': aVal = a.netProfit; bVal = b.netProfit; break;
           case 'revenue': aVal = a.revenue; bVal = b.revenue; break;
           case 'lfs': aVal = a.lastAnnualFinancials; bVal = b.lastAnnualFinancials; break;
+          case 'campaign': aVal = campaigns.find(ca => ca.id === a.campaignId)?.name || ''; bVal = campaigns.find(ca => ca.id === b.campaignId)?.name || ''; break;
           default: aVal = a.name; bVal = b.name;
         }
         const cmp = aVal.localeCompare(bVal, undefined, { numeric: true });
@@ -97,9 +107,29 @@ const CompaniesView: React.FC = () => {
   }, [companies, search, filters, sortKey, sortDir]);
 
   const handleAdd = () => {
+    if (form.campaignId) {
+      // Track campaign assignment for the new company
+      const newCompanyId = `comp-${Date.now()}`;
+      setCampaignAssignments(prev => ({ ...prev, [newCompanyId]: form.campaignId }));
+    }
     toast({ title: 'Company Added', description: `"${form.name}" has been added successfully.` });
     setAddOpen(false);
-    setForm({ name: '', phonePrimary: '', phoneSecondary: '', website: '', city: '', country: '', employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '' });
+    setForm({ name: '', phonePrimary: '', phoneSecondary: '', website: '', city: '', country: '', employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '', campaignId: '' });
+  };
+
+  const handleCampaignChange = (companyId: string, newCampaignId: string) => {
+    const currentCampaign = campaignAssignments[companyId];
+    if (currentCampaign === newCampaignId) {
+      // Relationship already exists, no duplicate record created
+      toast({ title: 'No Change', description: 'This company is already assigned to that campaign.' });
+      setEditingCampaign(null);
+      return;
+    }
+    setCampaignAssignments(prev => ({ ...prev, [companyId]: newCampaignId }));
+    updateCompany(companyId, { campaignId: newCampaignId });
+    const campName = campaigns.find(c => c.id === newCampaignId)?.name || 'None';
+    toast({ title: 'Campaign Updated', description: `Campaign changed to "${campName}".` });
+    setEditingCampaign(null);
   };
 
   const handleDelete = () => {
@@ -181,6 +211,7 @@ const CompaniesView: React.FC = () => {
           <thead>
             <tr>
               {isVis('name') && <ThSortable col="name">Name</ThSortable>}
+              {isVis('campaign') && <ThSortable col="campaign">Campaign</ThSortable>}
               {isVis('country') && <ThSortable col="country">Country</ThSortable>}
               {isVis('city') && <ThSortable col="city">City</ThSortable>}
               {isVis('contact') && <th>Contact</th>}
@@ -204,6 +235,32 @@ const CompaniesView: React.FC = () => {
                   <td>
                     <div className="font-medium text-foreground">{c.name}</div>
                     <a href={`https://${c.website}`} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">{c.website}</a>
+                  </td>
+                )}
+                {isVis('campaign') && (
+                  <td>
+                    {editingCampaign === c.id ? (
+                      <select
+                        autoFocus
+                        value={campaignAssignments[c.id] || c.campaignId}
+                        onChange={e => handleCampaignChange(c.id, e.target.value)}
+                        onBlur={() => setEditingCampaign(null)}
+                        className="h-7 text-xs rounded border border-border px-1.5 text-foreground w-full"
+                        style={{ background: 'hsl(var(--surface-2))' }}
+                      >
+                        <option value="">— None —</option>
+                        {campaigns.map(camp => <option key={camp.id} value={camp.id}>{camp.name}</option>)}
+                      </select>
+                    ) : (
+                      <span
+                        onClick={() => isAdmin && setEditingCampaign(c.id)}
+                        className={`text-xs px-1.5 py-0.5 rounded ${isAdmin ? 'cursor-pointer hover:bg-accent' : ''}`}
+                        style={isAdmin ? {} : {}}
+                        title={isAdmin ? 'Click to change campaign' : ''}
+                      >
+                        {campaigns.find(camp => camp.id === (campaignAssignments[c.id] || c.campaignId))?.name || '—'}
+                      </span>
+                    )}
                   </td>
                 )}
                 {isVis('country') && <td>{c.country}</td>}
@@ -300,6 +357,14 @@ const CompaniesView: React.FC = () => {
                   className="mt-1 w-full h-10 rounded-md border border-input px-3 text-sm text-foreground" style={{ background: 'hsl(var(--surface-2))' }}>
                   <option value="">Select</option>
                   {['A', 'B', 'C', 'D', 'E'].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-foreground">Campaign</label>
+                <select value={form.campaignId} onChange={e => setForm(f => ({ ...f, campaignId: e.target.value }))}
+                  className="mt-1 w-full h-10 rounded-md border border-input px-3 text-sm text-foreground" style={{ background: 'hsl(var(--surface-2))' }}>
+                  <option value="">— No Campaign —</option>
+                  {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
