@@ -238,7 +238,7 @@ const CompaniesView: React.FC = () => {
             {filteredData.length === 0 ? (
               <tr><td colSpan={20} className="text-center text-muted-foreground py-8">No results found</td></tr>
             ) : filteredData.map(c => (
-              <tr key={c.id}>
+              <tr key={c.id} onClick={() => handleRowClick(c.id)} className={`cursor-pointer ${selectedCompanyId === c.id && detailOpen ? 'bg-primary/10' : ''}`}>
                 {isVis('name') && (
                   <td>
                     <div className="font-medium text-foreground">{c.name}</div>
