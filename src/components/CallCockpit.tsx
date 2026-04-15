@@ -12,6 +12,8 @@ const CallCockpit: React.FC = () => {
   const [note, setNote] = useState('');
   const [showEmailEvents, setShowEmailEvents] = useState(false);
   const [showPitch, setShowPitch] = useState(false);
+  const [showCallEvents, setShowCallEvents] = useState(true);
+  const [showEmailEventsSection, setShowEmailEventsSection] = useState(true);
   const [pitchText, setPitchText] = useState('');
   const [lastEventId, setLastEventId] = useState<string | null>(null);
   const [eventNote, setEventNote] = useState('');
@@ -271,8 +273,6 @@ const CallCockpit: React.FC = () => {
   const noteLines = note.split('\n').length;
   const noteRows = Math.max(2, Math.min(noteLines + 1, 10));
 
-  const [showCallEvents, setShowCallEvents] = useState(true);
-  const [showEmailEventsSection, setShowEmailEventsSection] = useState(true);
 
   return (
     <div className="h-full overflow-hidden flex flex-col p-3">
