@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { opportunities, opportunityStages, Opportunity } from '@/data/additionalMockData';
 import { Search, SlidersHorizontal, ChevronUp, ChevronDown, Eye, X, Plus, MoreVertical } from 'lucide-react';
+import CallCockpit from '@/components/CallCockpit';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
