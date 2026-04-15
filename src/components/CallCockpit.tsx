@@ -826,6 +826,7 @@ const CallCockpit: React.FC = () => {
                   </span>
                 </div>
               )}
+              )}
             </div>
           )}
 
