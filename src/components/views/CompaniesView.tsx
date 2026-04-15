@@ -11,7 +11,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 const countryList = ['DE', 'SE', 'CH', 'UK', 'NO', 'AT', 'DK', 'FI', 'US', 'FR', 'IT', 'ES', 'NL', 'BE', 'PL', 'CZ'];
 
 const CompaniesView: React.FC = () => {
-  const { companies, role } = useAppState();
+  const { companies, role, updateCompany } = useAppState();
   const isAdmin = role === 'admin';
   const { toast } = useToast();
 
@@ -106,9 +106,29 @@ const CompaniesView: React.FC = () => {
   }, [companies, search, filters, sortKey, sortDir]);
 
   const handleAdd = () => {
+    if (form.campaignId) {
+      // Track campaign assignment for the new company
+      const newCompanyId = `comp-${Date.now()}`;
+      setCampaignAssignments(prev => ({ ...prev, [newCompanyId]: form.campaignId }));
+    }
     toast({ title: 'Company Added', description: `"${form.name}" has been added successfully.` });
     setAddOpen(false);
-    setForm({ name: '', phonePrimary: '', phoneSecondary: '', website: '', city: '', country: '', employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '' });
+    setForm({ name: '', phonePrimary: '', phoneSecondary: '', website: '', city: '', country: '', employees: '', priority: '', description: '', ebitda: '', ebit: '', lfs: '', netProfit: '', revenue: '', campaignId: '' });
+  };
+
+  const handleCampaignChange = (companyId: string, newCampaignId: string) => {
+    const currentCampaign = campaignAssignments[companyId];
+    if (currentCampaign === newCampaignId) {
+      // Relationship already exists, no duplicate record created
+      toast({ title: 'No Change', description: 'This company is already assigned to that campaign.' });
+      setEditingCampaign(null);
+      return;
+    }
+    setCampaignAssignments(prev => ({ ...prev, [companyId]: newCampaignId }));
+    updateCompany(companyId, { campaignId: newCampaignId });
+    const campName = campaigns.find(c => c.id === newCampaignId)?.name || 'None';
+    toast({ title: 'Campaign Updated', description: `Campaign changed to "${campName}".` });
+    setEditingCampaign(null);
   };
 
   const handleDelete = () => {
@@ -190,7 +210,7 @@ const CompaniesView: React.FC = () => {
           <thead>
             <tr>
               {isVis('name') && <ThSortable col="name">Name</ThSortable>}
-              {isVis('country') && <ThSortable col="country">Country</ThSortable>}
+              {isVis('campaign') && <ThSortable col="campaign">Campaign</ThSortable>}
               {isVis('city') && <ThSortable col="city">City</ThSortable>}
               {isVis('contact') && <th>Contact</th>}
               {isVis('ebit') && <ThSortable col="ebit">EBIT</ThSortable>}
@@ -215,7 +235,32 @@ const CompaniesView: React.FC = () => {
                     <a href={`https://${c.website}`} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">{c.website}</a>
                   </td>
                 )}
-                {isVis('country') && <td>{c.country}</td>}
+                {isVis('campaign') && (
+                  <td>
+                    {editingCampaign === c.id ? (
+                      <select
+                        autoFocus
+                        value={campaignAssignments[c.id] || c.campaignId}
+                        onChange={e => handleCampaignChange(c.id, e.target.value)}
+                        onBlur={() => setEditingCampaign(null)}
+                        className="h-7 text-xs rounded border border-border px-1.5 text-foreground w-full"
+                        style={{ background: 'hsl(var(--surface-2))' }}
+                      >
+                        <option value="">— None —</option>
+                        {campaigns.map(camp => <option key={camp.id} value={camp.id}>{camp.name}</option>)}
+                      </select>
+                    ) : (
+                      <span
+                        onClick={() => isAdmin && setEditingCampaign(c.id)}
+                        className={`text-xs px-1.5 py-0.5 rounded ${isAdmin ? 'cursor-pointer hover:bg-accent' : ''}`}
+                        style={isAdmin ? {} : {}}
+                        title={isAdmin ? 'Click to change campaign' : ''}
+                      >
+                        {campaigns.find(camp => camp.id === (campaignAssignments[c.id] || c.campaignId))?.name || '—'}
+                      </span>
+                    )}
+                  </td>
+                )}
                 {isVis('city') && <td>{c.city}</td>}
                 {isVis('contact') && (
                   <td>
