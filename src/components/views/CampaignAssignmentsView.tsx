@@ -158,7 +158,8 @@ const CampaignAssignmentsView: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden w-full">
+    <div className={`h-full flex ${detailOpen ? 'flex-row' : 'flex-col'} overflow-hidden w-full`}>
+      <div className={`flex flex-col overflow-hidden ${detailOpen ? 'w-1/2 border-r border-border' : 'flex-1'}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border" style={{ background: 'hsl(var(--surface-1))' }}>
         <h2 className="text-sm font-semibold text-foreground mr-2">Campaign Assignments</h2>
@@ -255,7 +256,7 @@ const CampaignAssignmentsView: React.FC = () => {
             {filtered.length === 0 ? (
               <tr><td colSpan={12} className="text-center text-muted-foreground py-8">No assignments found</td></tr>
             ) : filtered.map(r => (
-              <tr key={r.id}>
+              <tr key={r.id} onClick={() => { setSelectedCompanyId(r.companyId); setDetailOpen(true); }} className={`cursor-pointer ${r.companyId === selectedCompanyId && detailOpen ? 'bg-primary/10' : ''}`}>
                 {isVis('campaignName') && <td className="text-xs font-medium text-foreground">{r.campaignName}</td>}
                 {isVis('companyName') && <td className="text-xs font-medium text-foreground">{r.companyName}</td>}
                 {isVis('companyCountry') && <td className="text-xs">{r.companyCountry}</td>}
@@ -354,6 +355,22 @@ const CampaignAssignmentsView: React.FC = () => {
         title="Remove Assignment?"
         description={`Remove the assignment "${deleteConfirm.label}"? This will unlink the company from the campaign.`}
       />
+      </div>
+
+      {/* Detail Panel */}
+      {detailOpen && (
+        <div className="w-1/2 h-full overflow-hidden flex flex-col border-l border-border" style={{ background: 'hsl(var(--surface-1))' }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+            <span className="text-sm font-semibold text-foreground">Company Detail</span>
+            <button onClick={() => setDetailOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <CallCockpit />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
