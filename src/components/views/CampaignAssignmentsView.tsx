@@ -23,7 +23,6 @@ const CampaignAssignmentsView: React.FC = () => {
   const isAdmin = role === 'admin';
   const { toast } = useToast();
   const [detailOpen, setDetailOpen] = useState(false);
-  const { toast } = useToast();
 
   // Build assignments from companies' campaignId
   const [extraAssignments, setExtraAssignments] = useState<Assignment[]>([]);
