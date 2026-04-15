@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { format, addMinutes, addHours, setHours, setMinutes } from 'date-fns';
-import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X, Trash2 } from 'lucide-react';
+import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X, Trash2, MessageSquarePlus } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
 import { campaigns, Company, Status, StatusSpec, statusList, statusColorClass, keinInteresseReasons, adActaReasons, onHoldReasons, zukunftReasons } from '@/data/mockData';
 import HistoryBlock from './HistoryBlock';
