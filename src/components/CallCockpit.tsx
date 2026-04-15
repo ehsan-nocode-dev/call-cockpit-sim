@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { format, addMinutes, addHours, setHours, setMinutes } from 'date-fns';
-import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X, Trash2 } from 'lucide-react';
+import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X, Trash2, MessageSquarePlus } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
 import { campaigns, Company, Status, StatusSpec, statusList, statusColorClass, keinInteresseReasons, adActaReasons, onHoldReasons, zukunftReasons } from '@/data/mockData';
 import HistoryBlock from './HistoryBlock';
@@ -160,7 +160,7 @@ const CallCockpit: React.FC = () => {
     );
   }
 
-  const handleCallEvent = (label: string, preset: (() => Date) | null) => {
+  const handleCallEvent = (label: string, preset: (() => Date) | null, openNote = false) => {
     if (!isAdmin) return;
     if (eventNote.trim() && lastEventId) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -176,16 +176,21 @@ const CallCockpit: React.FC = () => {
     });
     setLastEventId(entryId);
     setEventNote('');
-    setEventNoteType('call');
-    setEventNoteSaved('idle');
-    setTimeout(() => eventNoteRef.current?.focus(), 50);
+    if (openNote) {
+      setEventNoteType('call');
+      setEventNoteSaved('idle');
+      setTimeout(() => eventNoteRef.current?.focus(), 50);
+    } else {
+      setEventNoteType(null);
+      setEventNoteSaved('idle');
+    }
     if (preset) {
       const nextDate = preset();
       setNextContact(nextDate, false);
     }
   };
 
-  const handleEmailEvent = (label: string) => {
+  const handleEmailEvent = (label: string, openNote = false) => {
     if (eventNote.trim() && lastEventId) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       saveEventNote(eventNote, lastEventId);
@@ -200,9 +205,14 @@ const CallCockpit: React.FC = () => {
     });
     setLastEventId(entryId);
     setEventNote('');
-    setEventNoteType('email');
-    setEventNoteSaved('idle');
-    setTimeout(() => eventNoteRef.current?.focus(), 50);
+    if (openNote) {
+      setEventNoteType('email');
+      setEventNoteSaved('idle');
+      setTimeout(() => eventNoteRef.current?.focus(), 50);
+    } else {
+      setEventNoteType(null);
+      setEventNoteSaved('idle');
+    }
   };
 
   const handleSaveNote = () => {
@@ -752,9 +762,18 @@ const CallCockpit: React.FC = () => {
               <div className="cockpit-label">Call Events</div>
               <div className="flex flex-wrap gap-1">
                 {callEvents.map(ev => (
-                  <button key={ev.label} onClick={() => handleCallEvent(ev.label, ev.preset)} className="event-button">
-                    {ev.label}
-                  </button>
+                  <span key={ev.label} className="inline-flex items-center gap-0">
+                    <button onClick={() => handleCallEvent(ev.label, ev.preset, false)} className="event-button rounded-r-none pr-1">
+                      {ev.label}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleCallEvent(ev.label, ev.preset, true); }}
+                      className="event-button rounded-l-none pl-0.5 pr-1 border-l border-border/50 opacity-60 hover:opacity-100"
+                      title="Log with note"
+                    >
+                      <MessageSquarePlus className="w-3 h-3" />
+                    </button>
+                  </span>
                 ))}
                 <button
                   onClick={() => setShowEmailEvents(!showEmailEvents)}
@@ -767,9 +786,18 @@ const CallCockpit: React.FC = () => {
               {showEmailEvents && (
                 <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-border">
                   {emailEvents.map(ev => (
-                    <button key={ev} onClick={() => handleEmailEvent(ev)} className="event-button">
-                      {ev}
-                    </button>
+                    <span key={ev} className="inline-flex items-center gap-0">
+                      <button onClick={() => handleEmailEvent(ev, false)} className="event-button rounded-r-none pr-1">
+                        {ev}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEmailEvent(ev, true); }}
+                        className="event-button rounded-l-none pl-0.5 pr-1 border-l border-border/50 opacity-60 hover:opacity-100"
+                        title="Log with note"
+                      >
+                        <MessageSquarePlus className="w-3 h-3" />
+                      </button>
+                    </span>
                   ))}
                 </div>
               )}
@@ -801,9 +829,18 @@ const CallCockpit: React.FC = () => {
               <div className="cockpit-label">Email Events</div>
               <div className="flex flex-wrap gap-1">
                 {emailEvents.map(ev => (
-                  <button key={ev} onClick={() => handleEmailEvent(ev)} className="event-button">
-                    {ev}
-                  </button>
+                  <span key={ev} className="inline-flex items-center gap-0">
+                    <button onClick={() => handleEmailEvent(ev, false)} className="event-button rounded-r-none pr-1">
+                      {ev}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEmailEvent(ev, true); }}
+                      className="event-button rounded-l-none pl-0.5 pr-1 border-l border-border/50 opacity-60 hover:opacity-100"
+                      title="Log with note"
+                    >
+                      <MessageSquarePlus className="w-3 h-3" />
+                    </button>
+                  </span>
                 ))}
               </div>
               {/* Inline note for email event (assistant) */}
