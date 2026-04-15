@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAppState } from '@/context/AppContext';
-import { Company, campaigns } from '@/data/mockData';
+import { Company, campaigns, Campaign } from '@/data/mockData';
 import { Search, SlidersHorizontal, ChevronUp, ChevronDown, Eye, X, Plus, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
