@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CallCockpit from '@/components/CallCockpit';
 
 const countryList = ['DE', 'SE', 'CH', 'UK', 'NO', 'AT', 'DK', 'FI', 'US', 'FR', 'IT', 'ES', 'NL', 'BE', 'PL', 'CZ'];
 
 const CompaniesView: React.FC = () => {
-  const { companies, role, updateCompany } = useAppState();
+  const { companies, role, updateCompany, setSelectedCompanyId, selectedCompanyId } = useAppState();
   const isAdmin = role === 'admin';
   const { toast } = useToast();
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // Search & sort
   const [search, setSearch] = useState('');
@@ -144,8 +146,14 @@ const CompaniesView: React.FC = () => {
     </th>
   );
 
+  const handleRowClick = (companyId: string) => {
+    setSelectedCompanyId(companyId);
+    setDetailOpen(true);
+  };
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className={`h-full flex ${detailOpen ? 'flex-row' : 'flex-col'} overflow-hidden`}>
+      <div className={`flex flex-col overflow-hidden ${detailOpen ? 'w-1/2 border-r border-border' : 'flex-1'}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border" style={{ background: 'hsl(var(--surface-1))' }}>
         <h2 className="text-lg font-semibold text-foreground">Company</h2>
@@ -230,7 +238,7 @@ const CompaniesView: React.FC = () => {
             {filteredData.length === 0 ? (
               <tr><td colSpan={20} className="text-center text-muted-foreground py-8">No results found</td></tr>
             ) : filteredData.map(c => (
-              <tr key={c.id}>
+              <tr key={c.id} onClick={() => handleRowClick(c.id)} className={`cursor-pointer ${selectedCompanyId === c.id && detailOpen ? 'bg-primary/10' : ''}`}>
                 {isVis('name') && (
                   <td>
                     <div className="font-medium text-foreground">{c.name}</div>
@@ -416,6 +424,22 @@ const CompaniesView: React.FC = () => {
         variant="destructive"
         onConfirm={handleDelete}
       />
+      </div>
+
+      {/* Detail Panel */}
+      {detailOpen && (
+        <div className="w-1/2 h-full overflow-hidden flex flex-col border-l border-border" style={{ background: 'hsl(var(--surface-1))' }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+            <span className="text-sm font-semibold text-foreground">Company Detail</span>
+            <button onClick={() => setDetailOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <CallCockpit />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
