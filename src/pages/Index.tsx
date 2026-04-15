@@ -19,7 +19,7 @@ const Index = () => {
     <AppProvider>
       <div className="flex h-screen overflow-hidden w-full">
         <AppSidebar activeView={activeView} onViewChange={setActiveView} />
-        <div className="flex-1 flex overflow-hidden">
+        <main className="flex-1 flex overflow-hidden min-w-0">
           {activeView === 'queue' ? (
             <ResizablePanelGroup direction="horizontal">
               <ResizablePanel defaultSize={40} minSize={25} maxSize={60}>
@@ -45,7 +45,7 @@ const Index = () => {
           ) : (
             <PlaceholderView viewId={activeView} />
           )}
-        </div>
+        </main>
       </div>
     </AppProvider>
   );
