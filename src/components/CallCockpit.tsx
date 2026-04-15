@@ -160,7 +160,7 @@ const CallCockpit: React.FC = () => {
     );
   }
 
-  const handleCallEvent = (label: string, preset: (() => Date) | null) => {
+  const handleCallEvent = (label: string, preset: (() => Date) | null, openNote = false) => {
     if (!isAdmin) return;
     if (eventNote.trim() && lastEventId) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -176,16 +176,21 @@ const CallCockpit: React.FC = () => {
     });
     setLastEventId(entryId);
     setEventNote('');
-    setEventNoteType('call');
-    setEventNoteSaved('idle');
-    setTimeout(() => eventNoteRef.current?.focus(), 50);
+    if (openNote) {
+      setEventNoteType('call');
+      setEventNoteSaved('idle');
+      setTimeout(() => eventNoteRef.current?.focus(), 50);
+    } else {
+      setEventNoteType(null);
+      setEventNoteSaved('idle');
+    }
     if (preset) {
       const nextDate = preset();
       setNextContact(nextDate, false);
     }
   };
 
-  const handleEmailEvent = (label: string) => {
+  const handleEmailEvent = (label: string, openNote = false) => {
     if (eventNote.trim() && lastEventId) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       saveEventNote(eventNote, lastEventId);
@@ -200,9 +205,14 @@ const CallCockpit: React.FC = () => {
     });
     setLastEventId(entryId);
     setEventNote('');
-    setEventNoteType('email');
-    setEventNoteSaved('idle');
-    setTimeout(() => eventNoteRef.current?.focus(), 50);
+    if (openNote) {
+      setEventNoteType('email');
+      setEventNoteSaved('idle');
+      setTimeout(() => eventNoteRef.current?.focus(), 50);
+    } else {
+      setEventNoteType(null);
+      setEventNoteSaved('idle');
+    }
   };
 
   const handleSaveNote = () => {
