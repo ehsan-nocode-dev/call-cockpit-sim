@@ -271,10 +271,13 @@ const CallCockpit: React.FC = () => {
   const noteLines = note.split('\n').length;
   const noteRows = Math.max(2, Math.min(noteLines + 1, 10));
 
+  const [showCallEvents, setShowCallEvents] = useState(true);
+  const [showEmailEventsSection, setShowEmailEventsSection] = useState(true);
+
   return (
-    <div className="h-full overflow-auto p-3 space-y-3">
-      {/* Two-column top section */}
-      <div className="grid grid-cols-2 gap-3">
+    <div className="h-full overflow-hidden flex flex-col p-3">
+      {/* Three-column layout */}
+      <div className="flex-1 grid grid-cols-3 gap-3 overflow-hidden">
         {/* LEFT COLUMN - Company Block */}
         <div className="space-y-3">
           {/* Campaign */}
