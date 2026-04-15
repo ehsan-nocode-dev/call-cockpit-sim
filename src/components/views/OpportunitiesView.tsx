@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { opportunities, opportunityStages, Opportunity } from '@/data/additionalMockData';
 import { Search, SlidersHorizontal, ChevronUp, ChevronDown, Eye, X, Plus, MoreVertical } from 'lucide-react';
+import CallCockpit from '@/components/CallCockpit';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -15,9 +16,10 @@ const stageColor: Record<string, string> = {
 };
 
 const OpportunitiesView: React.FC = () => {
-  const { role } = useAppState();
+  const { role, companies, setSelectedCompanyId, selectedCompanyId } = useAppState();
   const isAdmin = role === 'admin';
   const { toast } = useToast();
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<string | null>('companyName');
@@ -68,8 +70,17 @@ const OpportunitiesView: React.FC = () => {
 
   const isVis = (key: string) => visibleCols.has(key);
 
+  const handleRowClick = (o: typeof filteredData[0]) => {
+    const comp = companies.find(c => c.name === o.companyName);
+    if (comp) {
+      setSelectedCompanyId(comp.id);
+      setDetailOpen(true);
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className={`h-full flex ${detailOpen ? 'flex-row' : 'flex-col'} overflow-hidden`}>
+      <div className={`flex flex-col overflow-hidden ${detailOpen ? 'w-1/2 border-r border-border' : 'flex-1'}`}>
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border" style={{ background: 'hsl(var(--surface-1))' }}>
         <h2 className="text-lg font-semibold text-foreground">Opportunities</h2>
         <div className="flex-1" />
@@ -138,7 +149,7 @@ const OpportunitiesView: React.FC = () => {
             {filteredData.length === 0 ? (
               <tr><td colSpan={20} className="text-center text-muted-foreground py-8">No results found</td></tr>
             ) : filteredData.map(o => (
-              <tr key={o.id}>
+              <tr key={o.id} onClick={() => handleRowClick(o)} className={`cursor-pointer ${companies.find(c => c.name === o.companyName)?.id === selectedCompanyId && detailOpen ? 'bg-primary/10' : ''}`}>
                 {isVis('companyName') && <td><span className="font-medium text-foreground">{o.companyName}</span></td>}
                 {isVis('contactName') && <td>{o.contactName}</td>}
                 {isVis('value') && <td className="font-mono text-xs">{o.value}</td>}
@@ -204,6 +215,22 @@ const OpportunitiesView: React.FC = () => {
         variant="destructive"
         onConfirm={() => toast({ title: 'Opportunity Deleted', description: `Opportunity for "${deleteConfirm.name}" has been deleted.`, variant: 'destructive' })}
       />
+      </div>
+
+      {/* Detail Panel */}
+      {detailOpen && (
+        <div className="w-1/2 h-full overflow-hidden flex flex-col border-l border-border" style={{ background: 'hsl(var(--surface-1))' }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+            <span className="text-sm font-semibold text-foreground">Company Detail</span>
+            <button onClick={() => setDetailOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <CallCockpit />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
