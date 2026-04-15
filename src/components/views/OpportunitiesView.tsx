@@ -215,6 +215,22 @@ const OpportunitiesView: React.FC = () => {
         variant="destructive"
         onConfirm={() => toast({ title: 'Opportunity Deleted', description: `Opportunity for "${deleteConfirm.name}" has been deleted.`, variant: 'destructive' })}
       />
+      </div>
+
+      {/* Detail Panel */}
+      {detailOpen && (
+        <div className="w-1/2 h-full overflow-hidden flex flex-col border-l border-border" style={{ background: 'hsl(var(--surface-1))' }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+            <span className="text-sm font-semibold text-foreground">Company Detail</span>
+            <button onClick={() => setDetailOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <CallCockpit />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
