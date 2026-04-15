@@ -19,8 +19,10 @@ interface Assignment {
 }
 
 const CampaignAssignmentsView: React.FC = () => {
-  const { companies, role, updateCompany } = useAppState();
+  const { companies, role, updateCompany, setSelectedCompanyId, selectedCompanyId } = useAppState();
   const isAdmin = role === 'admin';
+  const { toast } = useToast();
+  const [detailOpen, setDetailOpen] = useState(false);
   const { toast } = useToast();
 
   // Build assignments from companies' campaignId
