@@ -6,6 +6,7 @@ import CallCockpit from '@/components/CallCockpit';
 import PlaceholderView from '@/components/PlaceholderView';
 import CompaniesView from '@/components/views/CompaniesView';
 import CampaignsView from '@/components/views/CampaignsView';
+import CampaignAssignmentsView from '@/components/views/CampaignAssignmentsView';
 import OpportunitiesView from '@/components/views/OpportunitiesView';
 import PeopleView from '@/components/views/PeopleView';
 import UsersView from '@/components/views/UsersView';
@@ -34,6 +35,8 @@ const Index = () => {
             <CompaniesView />
           ) : activeView === 'campaigns' ? (
             <CampaignsView />
+          ) : activeView === 'assignments' ? (
+            <CampaignAssignmentsView />
           ) : activeView === 'opportunities' ? (
             <OpportunitiesView />
           ) : activeView === 'people' ? (

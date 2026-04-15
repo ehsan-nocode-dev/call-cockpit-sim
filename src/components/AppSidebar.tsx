@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { Phone, Building2, Megaphone, Target, Upload, Shield, UserCog, Users, Settings, Contact, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
 
+import { Link2 } from 'lucide-react';
+
 const navItems = [
   { id: 'queue', label: 'Call Queue', icon: Phone },
   { id: 'companies', label: 'Companies', icon: Building2 },
   { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
+  { id: 'assignments', label: 'Campaign Assignments', icon: Link2 },
   { id: 'opportunities', label: 'Opportunities', icon: Target },
   { id: 'people', label: 'People', icon: Contact },
   { id: 'users', label: 'Users', icon: Users },
