@@ -30,7 +30,6 @@ const CallCockpit: React.FC = () => {
   const [newMgName, setNewMgName] = useState('');
   const [newMgPos, setNewMgPos] = useState('');
   const noteRef = useRef<HTMLTextAreaElement>(null);
-  const noteRef = useRef<HTMLTextAreaElement>(null);
   const isAdmin = role === 'admin';
 
   useEffect(() => {
