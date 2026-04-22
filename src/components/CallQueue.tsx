@@ -1,19 +1,34 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Search, ArrowUpDown, Filter, X } from 'lucide-react';
+import { Search, ArrowUpDown, Filter, X, Trash2 } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
 import { Company, Status, statusColorClass, statusList } from '@/data/mockData';
 import TagChip from './TagChip';
 import TagPicker from './TagPicker';
+import ConfirmDialog from './ConfirmDialog';
+import { toast } from 'sonner';
 
 const MAX_QUEUE_TAG_CHIPS = 3;
 
 const CallQueue: React.FC = () => {
   const {
     companies, selectedCompanyId, setSelectedCompanyId, role,
-    allTags, getTagByName, tagFilterIds, toggleTagFilter, clearTagFilter,
+    allTags, getTagByName, tagFilterIds, toggleTagFilter, clearTagFilter, deleteTag,
   } = useAppState();
   const [search, setSearch] = useState('');
+  const [tagToDelete, setTagToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // Compute usage counts for the tag pending deletion (recomputed on each render — cheap for prototype)
+  const deleteImpact = useMemo(() => {
+    if (!tagToDelete) return { companies: 0, decisionMakers: 0 };
+    const lower = tagToDelete.name.toLowerCase();
+    let co = 0, dm = 0;
+    companies.forEach(c => {
+      if (c.tags?.some(t => t.toLowerCase() === lower)) co++;
+      if (c.decisionMaker?.tags?.some(t => t.toLowerCase() === lower)) dm++;
+    });
+    return { companies: co, decisionMakers: dm };
+  }, [tagToDelete, companies]);
   const [sortField, setSortField] = useState<'nextContact' | 'callPriority' | 'companyPriority' | 'status'>('nextContact');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [statusFilter, setStatusFilter] = useState<Status | ''>('');
