@@ -209,19 +209,30 @@ const CallQueue: React.FC = () => {
                 {visibleTagsForFilter.map(tag => {
                   const checked = tagFilterIds.includes(tag.id);
                   return (
-                    <label
+                    <div
                       key={tag.id}
-                      className="flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-background cursor-pointer text-xs"
+                      className="group flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-background text-xs"
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleTagFilter(tag.id)}
-                        className="w-3 h-3 rounded border-border accent-primary"
-                      />
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
-                      <span className="text-foreground truncate">{tag.name}</span>
-                    </label>
+                      <label className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleTagFilter(tag.id)}
+                          className="w-3 h-3 rounded border-border accent-primary"
+                        />
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                        <span className="text-foreground truncate">{tag.name}</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setTagToDelete({ id: tag.id, name: tag.name }); }}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                        title={`Delete tag "${tag.name}"`}
+                        aria-label={`Delete tag ${tag.name}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -263,6 +274,36 @@ const CallQueue: React.FC = () => {
       <div className="px-3 py-1.5 border-t border-border text-xs text-muted-foreground">
         {queueItems.length} items in queue
       </div>
+
+      {/* Delete-tag confirmation */}
+      <ConfirmDialog
+        open={!!tagToDelete}
+        onOpenChange={(o) => { if (!o) setTagToDelete(null); }}
+        title={tagToDelete ? `Delete tag “${tagToDelete.name}”?` : 'Delete tag'}
+        description={
+          tagToDelete
+            ? (deleteImpact.companies + deleteImpact.decisionMakers === 0
+                ? `This tag is not currently assigned to any record. It will be permanently removed from the master tag list.`
+                : `This tag is assigned to ${deleteImpact.companies} ${deleteImpact.companies === 1 ? 'company' : 'companies'}${deleteImpact.decisionMakers ? ` and ${deleteImpact.decisionMakers} decision maker${deleteImpact.decisionMakers === 1 ? '' : 's'}` : ''}. Deleting it will remove the tag from all of them and from the master tag list. This action cannot be undone.`)
+            : ''
+        }
+        confirmLabel="Delete tag"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={() => {
+          if (!tagToDelete) return;
+          const result = deleteTag(tagToDelete.id);
+          if (result) {
+            const total = result.affectedCompanies + result.affectedDecisionMakers;
+            toast.success(`Tag “${result.name}” deleted`, {
+              description: total === 0
+                ? 'Removed from the master list.'
+                : `Removed from ${result.affectedCompanies} ${result.affectedCompanies === 1 ? 'company' : 'companies'}${result.affectedDecisionMakers ? ` and ${result.affectedDecisionMakers} decision maker${result.affectedDecisionMakers === 1 ? '' : 's'}` : ''}.`,
+            });
+          }
+          setTagToDelete(null);
+        }}
+      />
     </div>
   );
 };
