@@ -1,11 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Search, ArrowUpDown, Tag, Filter, X } from 'lucide-react';
+import { Search, ArrowUpDown, Filter, X } from 'lucide-react';
 import { useAppState } from '@/context/AppContext';
 import { Company, Status, statusColorClass, statusList } from '@/data/mockData';
+import TagChip from './TagChip';
+import TagPicker from './TagPicker';
+
+const MAX_QUEUE_TAG_CHIPS = 3;
 
 const CallQueue: React.FC = () => {
-  const { companies, selectedCompanyId, setSelectedCompanyId, role } = useAppState();
+  const {
+    companies, selectedCompanyId, setSelectedCompanyId, role,
+    allTags, getTagByName, tagFilterIds, toggleTagFilter, clearTagFilter,
+  } = useAppState();
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState<'nextContact' | 'callPriority' | 'companyPriority' | 'status'>('nextContact');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -13,10 +20,19 @@ const CallQueue: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('');
   const [campaignFilter, setCampaignFilter] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
-  const [tagInput, setTagInput] = useState('');
-  const [editingTagCompanyId, setEditingTagCompanyId] = useState<string | null>(null);
+  const [tagSearch, setTagSearch] = useState('');
 
   const isAdmin = role === 'admin';
+
+  // Build a Set of tag NAMES (lower-cased) corresponding to active tag-id filters
+  const activeTagNames = useMemo(() => {
+    const names = new Set<string>();
+    tagFilterIds.forEach(id => {
+      const t = allTags.find(x => x.id === id);
+      if (t) names.add(t.name.toLowerCase());
+    });
+    return names;
+  }, [tagFilterIds, allTags]);
 
   const queueItems = useMemo(() => {
     let items = companies.filter(c => c.nextContact !== null);
@@ -40,6 +56,15 @@ const CallQueue: React.FC = () => {
     if (priorityFilter) items = items.filter(c => c.companyPriority === priorityFilter);
     if (campaignFilter) items = items.filter(c => c.campaignId === campaignFilter);
 
+    // Tag filter: OR logic — record matches if it has ANY of the selected tags.
+    // Records with no tags are hidden when the tag filter is active.
+    if (activeTagNames.size > 0) {
+      items = items.filter(c => {
+        if (!c.tags || c.tags.length === 0) return false;
+        return c.tags.some(t => activeTagNames.has(t.toLowerCase()));
+      });
+    }
+
     items.sort((a, b) => {
       let cmp = 0;
       if (sortField === 'nextContact') {
@@ -55,7 +80,7 @@ const CallQueue: React.FC = () => {
     });
 
     return items;
-  }, [companies, search, sortField, sortDir, statusFilter, priorityFilter, campaignFilter]);
+  }, [companies, search, sortField, sortDir, statusFilter, priorityFilter, campaignFilter, activeTagNames]);
 
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -84,13 +109,20 @@ const CallQueue: React.FC = () => {
     return names[id] || id;
   };
 
-  const activeFilterCount = [statusFilter, priorityFilter, campaignFilter].filter(Boolean).length;
+  const visibleTagsForFilter = useMemo(() => {
+    const q = tagSearch.trim().toLowerCase();
+    if (!q) return allTags;
+    return allTags.filter(t => t.name.toLowerCase().includes(q));
+  }, [allTags, tagSearch]);
+
+  const activeFilterCount =
+    [statusFilter, priorityFilter, campaignFilter].filter(Boolean).length + tagFilterIds.length;
 
   return (
     <div className="flex flex-col h-full">
       {/* Search + Filter */}
       <div className="p-2 border-b border-border space-y-1.5">
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 relative">
           <div className="relative flex-1">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
@@ -112,26 +144,73 @@ const CallQueue: React.FC = () => {
           </button>
         </div>
         {showFilters && (
-          <div className="flex gap-1.5 flex-wrap">
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as Status | '')} className="text-xs bg-surface-2 border border-border rounded px-1.5 py-1 text-foreground">
-              <option value="">All Statuses</option>
-              {statusList.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)} className="text-xs bg-surface-2 border border-border rounded px-1.5 py-1 text-foreground">
-              <option value="">All Priorities</option>
-              {['A','B','C','D','E'].map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-            <select value={campaignFilter} onChange={e => setCampaignFilter(e.target.value)} className="text-xs bg-surface-2 border border-border rounded px-1.5 py-1 text-foreground">
-              <option value="">All Campaigns</option>
-              <option value="camp-1">DACH M&A</option>
-              <option value="camp-2">Nordics GE</option>
-              <option value="camp-3">UK Succession</option>
-            </select>
-            {activeFilterCount > 0 && (
-              <button onClick={() => { setStatusFilter(''); setPriorityFilter(''); setCampaignFilter(''); }} className="text-xs text-primary hover:underline flex items-center gap-0.5">
-                <X className="w-3 h-3" /> Clear
-              </button>
-            )}
+          <div className="space-y-2">
+            <div className="flex gap-1.5 flex-wrap">
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as Status | '')} className="text-xs bg-surface-2 border border-border rounded px-1.5 py-1 text-foreground">
+                <option value="">All Statuses</option>
+                {statusList.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)} className="text-xs bg-surface-2 border border-border rounded px-1.5 py-1 text-foreground">
+                <option value="">All Priorities</option>
+                {['A','B','C','D','E'].map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={campaignFilter} onChange={e => setCampaignFilter(e.target.value)} className="text-xs bg-surface-2 border border-border rounded px-1.5 py-1 text-foreground">
+                <option value="">All Campaigns</option>
+                <option value="camp-1">DACH M&A</option>
+                <option value="camp-2">Nordics GE</option>
+                <option value="camp-3">UK Succession</option>
+              </select>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => { setStatusFilter(''); setPriorityFilter(''); setCampaignFilter(''); clearTagFilter(); }}
+                  className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                >
+                  <X className="w-3 h-3" /> Clear all
+                </button>
+              )}
+            </div>
+
+            {/* Tag filter panel */}
+            <div className="rounded border border-border bg-surface-2 p-1.5 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Tags</span>
+                {tagFilterIds.length > 0 && (
+                  <button onClick={clearTagFilter} className="text-[10px] text-primary hover:underline">Clear</button>
+                )}
+              </div>
+              {allTags.length > 8 && (
+                <input
+                  type="text"
+                  value={tagSearch}
+                  onChange={e => setTagSearch(e.target.value)}
+                  placeholder="Search tags…"
+                  className="w-full text-xs bg-background border border-border rounded px-1.5 py-1 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              )}
+              <div className="max-h-40 overflow-auto pr-1 space-y-0.5">
+                {visibleTagsForFilter.length === 0 && (
+                  <div className="text-[11px] text-muted-foreground py-1">No tags</div>
+                )}
+                {visibleTagsForFilter.map(tag => {
+                  const checked = tagFilterIds.includes(tag.id);
+                  return (
+                    <label
+                      key={tag.id}
+                      className="flex items-center gap-1.5 px-1 py-0.5 rounded hover:bg-background cursor-pointer text-xs"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleTagFilter(tag.id)}
+                        className="w-3 h-3 rounded border-border accent-primary"
+                      />
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                      <span className="text-foreground truncate">{tag.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -159,11 +238,6 @@ const CallQueue: React.FC = () => {
                 onClick={() => setSelectedCompanyId(company.id)}
                 showPhone={isAdmin}
                 campaignName={getCampaignName(company.campaignId)}
-                editingTag={editingTagCompanyId === company.id}
-                tagInput={editingTagCompanyId === company.id ? tagInput : ''}
-                onTagInputChange={setTagInput}
-                onStartEditTag={() => { setEditingTagCompanyId(company.id); setTagInput(''); }}
-                onCancelEditTag={() => setEditingTagCompanyId(null)}
               />
             ))}
           </tbody>
@@ -184,26 +258,12 @@ const QueueRow: React.FC<{
   onClick: () => void;
   showPhone: boolean;
   campaignName: string;
-  editingTag: boolean;
-  tagInput: string;
-  onTagInputChange: (v: string) => void;
-  onStartEditTag: () => void;
-  onCancelEditTag: () => void;
-}> = ({ company, isSelected, onClick, showPhone, campaignName, editingTag, tagInput, onTagInputChange, onStartEditTag, onCancelEditTag }) => {
+}> = ({ company, isSelected, onClick, showPhone, campaignName }) => {
   const { updateCompany } = useAppState();
   const nc = company.nextContact!;
 
-  const addTag = () => {
-    if (tagInput.trim()) {
-      updateCompany(company.id, { queueTags: [...company.queueTags, tagInput.trim()] });
-      onTagInputChange('');
-      onCancelEditTag();
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    updateCompany(company.id, { queueTags: company.queueTags.filter(t => t !== tag) });
-  };
+  const visibleTags = company.tags.slice(0, MAX_QUEUE_TAG_CHIPS);
+  const overflowCount = Math.max(0, company.tags.length - MAX_QUEUE_TAG_CHIPS);
 
   return (
     <tr className={isSelected ? 'selected' : ''} onClick={onClick} style={{ cursor: 'pointer' }}>
@@ -253,27 +313,21 @@ const QueueRow: React.FC<{
       </td>
       <td onClick={e => e.stopPropagation()}>
         <div className="flex flex-wrap gap-0.5 items-center">
-          {company.queueTags.map(tag => (
-            <span key={tag} className="px-1 py-0 text-[10px] rounded bg-primary/10 text-primary flex items-center gap-0.5">
-              {tag}
-              <button onClick={() => removeTag(tag)} className="hover:text-destructive"><X className="w-2.5 h-2.5" /></button>
-            </span>
+          {visibleTags.map(tag => (
+            <TagChip key={tag} name={tag} size="xs" />
           ))}
-          {editingTag ? (
-            <input
-              autoFocus
-              value={tagInput}
-              onChange={e => onTagInputChange(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addTag(); if (e.key === 'Escape') onCancelEditTag(); }}
-              onBlur={() => { if (tagInput.trim()) addTag(); else onCancelEditTag(); }}
-              className="w-14 text-[10px] bg-surface-2 border border-border rounded px-1 py-0 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="tag"
-            />
-          ) : (
-            <button onClick={onStartEditTag} className="text-muted-foreground hover:text-primary">
-              <Tag className="w-3 h-3" />
-            </button>
+          {overflowCount > 0 && (
+            <span
+              className="px-1 py-0 text-[10px] rounded bg-surface-2 text-muted-foreground border border-border"
+              title={company.tags.slice(MAX_QUEUE_TAG_CHIPS).join(', ')}
+            >
+              +{overflowCount}
+            </span>
           )}
+          <TagPicker
+            assigned={company.tags}
+            onChange={(next) => updateCompany(company.id, { tags: next })}
+          />
         </div>
       </td>
     </tr>

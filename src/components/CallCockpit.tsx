@@ -4,6 +4,8 @@ import { ExternalLink, Plus, User, Clock, Mail, ChevronDown, ChevronUp, Phone, X
 import { useAppState } from '@/context/AppContext';
 import { campaigns, Company, Status, StatusSpec, statusList, statusColorClass, keinInteresseReasons, adActaReasons, onHoldReasons, zukunftReasons } from '@/data/mockData';
 import HistoryBlock from './HistoryBlock';
+import TagChip from './TagChip';
+import TagPicker from './TagPicker';
 
 const titleOptions = ['', 'Dr.', 'Prof.', 'Mag.'];
 
@@ -27,10 +29,6 @@ const CallCockpit: React.FC = () => {
   const [newShPct, setNewShPct] = useState('');
   const [newMgName, setNewMgName] = useState('');
   const [newMgPos, setNewMgPos] = useState('');
-  const [editingCompanyTags, setEditingCompanyTags] = useState(false);
-  const [newCompanyTag, setNewCompanyTag] = useState('');
-  const [editingDmTags, setEditingDmTags] = useState(false);
-  const [newDmTag, setNewDmTag] = useState('');
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const isAdmin = role === 'admin';
 
@@ -319,39 +317,16 @@ const CallCockpit: React.FC = () => {
             {/* Tags */}
             <div className="flex flex-wrap gap-1 items-center">
               {co.tags.map(tag => (
-                <span key={tag} className="px-1.5 py-0.5 text-xs rounded bg-surface-2 text-muted-foreground flex items-center gap-0.5">
-                  {tag}
-                  {editingCompanyTags && (
-                    <button onClick={() => updateCompany(co.id, { tags: co.tags.filter(t => t !== tag) })} className="hover:text-destructive">
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  )}
-                </span>
-              ))}
-              {editingCompanyTags ? (
-                <input
-                  autoFocus
-                  value={newCompanyTag}
-                  onChange={e => setNewCompanyTag(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && newCompanyTag.trim()) {
-                      updateCompany(co.id, { tags: [...co.tags, newCompanyTag.trim()] });
-                      setNewCompanyTag('');
-                    }
-                    if (e.key === 'Escape') { setEditingCompanyTags(false); setNewCompanyTag(''); }
-                  }}
-                  onBlur={() => {
-                    if (newCompanyTag.trim()) updateCompany(co.id, { tags: [...co.tags, newCompanyTag.trim()] });
-                    setEditingCompanyTags(false); setNewCompanyTag('');
-                  }}
-                  className="w-16 text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder="tag"
+                <TagChip
+                  key={tag}
+                  name={tag}
+                  onRemove={() => updateCompany(co.id, { tags: co.tags.filter(t => t !== tag) })}
                 />
-              ) : (
-                <button onClick={() => setEditingCompanyTags(true)} className="text-muted-foreground hover:text-primary text-xs">
-                  <Plus className="w-3 h-3" />
-                </button>
-              )}
+              ))}
+              <TagPicker
+                assigned={co.tags}
+                onChange={(next) => updateCompany(co.id, { tags: next })}
+              />
             </div>
 
             <div className="text-xs text-muted-foreground">{co.city}, {co.country}</div>
@@ -507,39 +482,16 @@ const CallCockpit: React.FC = () => {
             {/* DM Tags */}
             <div className="flex flex-wrap gap-1 items-center">
               {dm.tags.map(tag => (
-                <span key={tag} className="px-1.5 py-0.5 text-xs rounded bg-surface-2 text-primary flex items-center gap-0.5">
-                  {tag}
-                  {editingDmTags && (
-                    <button onClick={() => updateCompany(co.id, { decisionMaker: { ...dm, tags: dm.tags.filter(t => t !== tag) } })} className="hover:text-destructive">
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  )}
-                </span>
-              ))}
-              {editingDmTags ? (
-                <input
-                  autoFocus
-                  value={newDmTag}
-                  onChange={e => setNewDmTag(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && newDmTag.trim()) {
-                      updateCompany(co.id, { decisionMaker: { ...dm, tags: [...dm.tags, newDmTag.trim()] } });
-                      setNewDmTag('');
-                    }
-                    if (e.key === 'Escape') { setEditingDmTags(false); setNewDmTag(''); }
-                  }}
-                  onBlur={() => {
-                    if (newDmTag.trim()) updateCompany(co.id, { decisionMaker: { ...dm, tags: [...dm.tags, newDmTag.trim()] } });
-                    setEditingDmTags(false); setNewDmTag('');
-                  }}
-                  className="w-16 text-xs bg-surface-2 border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder="tag"
+                <TagChip
+                  key={tag}
+                  name={tag}
+                  onRemove={() => updateCompany(co.id, { decisionMaker: { ...dm, tags: dm.tags.filter(t => t !== tag) } })}
                 />
-              ) : (
-                <button onClick={() => setEditingDmTags(true)} className="text-muted-foreground hover:text-primary text-xs">
-                  <Plus className="w-3 h-3" />
-                </button>
-              )}
+              ))}
+              <TagPicker
+                assigned={dm.tags}
+                onChange={(next) => updateCompany(co.id, { decisionMaker: { ...dm, tags: next } })}
+              />
             </div>
 
             {/* Contact */}
