@@ -40,6 +40,7 @@ interface AppState {
   allTags: Tag[];
   getTagByName: (name: string) => Tag | undefined;
   upsertTag: (name: string) => Tag;
+  deleteTag: (tagId: string) => { name: string; affectedCompanies: number; affectedDecisionMakers: number } | null;
   tagFilterIds: string[];
   toggleTagFilter: (tagId: string) => void;
   clearTagFilter: () => void;
@@ -96,6 +97,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return tag;
   }, [allTags.length, tagsByName]);
 
+  const deleteTag = useCallback((tagId: string) => {
+    const tag = allTags.find(t => t.id === tagId);
+    if (!tag) return null;
+    const lower = tag.name.toLowerCase();
+    let affectedCompanies = 0;
+    let affectedDecisionMakers = 0;
+    setCompanies(prev => prev.map(c => {
+      let changed = false;
+      let nextTags = c.tags;
+      if (c.tags?.some(t => t.toLowerCase() === lower)) {
+        nextTags = c.tags.filter(t => t.toLowerCase() !== lower);
+        affectedCompanies++;
+        changed = true;
+      }
+      let nextDM = c.decisionMaker;
+      if (c.decisionMaker?.tags?.some(t => t.toLowerCase() === lower)) {
+        nextDM = { ...c.decisionMaker, tags: c.decisionMaker.tags.filter(t => t.toLowerCase() !== lower) };
+        affectedDecisionMakers++;
+        changed = true;
+      }
+      return changed ? { ...c, tags: nextTags, decisionMaker: nextDM } : c;
+    }));
+    setAllTags(prev => prev.filter(t => t.id !== tagId));
+    setTagFilterIds(prev => prev.filter(id => id !== tagId));
+    return { name: tag.name, affectedCompanies, affectedDecisionMakers };
+  }, [allTags]);
+
   const toggleTagFilter = useCallback((tagId: string) => {
     setTagFilterIds(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]);
   }, []);
@@ -106,7 +134,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider value={{
       role, setRole, companies, selectedCompanyId, setSelectedCompanyId,
       selectedCompany, updateCompany, addHistoryEntry,
-      allTags, getTagByName, upsertTag,
+      allTags, getTagByName, upsertTag, deleteTag,
       tagFilterIds, toggleTagFilter, clearTagFilter,
     }}>
       {children}
