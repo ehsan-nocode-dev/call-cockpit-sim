@@ -5,14 +5,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Check, Download, Upload, Lock, FileSpreadsheet, AlertTriangle, AlertCircle,
-  CheckCircle2, ArrowLeft, Loader2, X,
+  Check, Upload, Lock, AlertTriangle, AlertCircle,
+  CheckCircle2, Loader2, X,
 } from 'lucide-react';
 import {
-  COMPANY_TEMPLATE_COLUMNS, PERSON_TEMPLATE_COLUMNS, COMPANY_REQUIRED, PERSON_REQUIRED,
+  COMPANY_REQUIRED, PERSON_REQUIRED,
   EXISTING_DOMAINS, SAMPLE_COMPANY_CSV, SAMPLE_PERSON_CSV,
 } from './sampleCsv';
-import { parseCsv, extractDomain, downloadTemplate } from './csvUtils';
+import { parseCsv, extractDomain } from './csvUtils';
 
 export type ImportEntity = 'company' | 'person';
 
@@ -25,7 +25,13 @@ interface ImportFlowProps {
   onNavigateCompanies?: () => void;
 }
 
-type StepId = 'template' | 'upload' | 'preview' | 'confirm' | 'success';
+type StepId = 'upload' | 'preview' | 'done';
+
+const STEPS: { id: StepId; label: string }[] = [
+  { id: 'upload', label: 'Upload' },
+  { id: 'preview', label: 'Preview' },
+  { id: 'done', label: 'Done' },
+];
 
 const ImportFlow: React.FC<ImportFlowProps> = ({
   open, onOpenChange, entity, campaignName, onComplete, onNavigateCompanies,
@@ -33,12 +39,9 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
   const isCampaignScoped = !!campaignName;
   const isCompany = entity === 'company';
   const requiredCols = isCompany ? COMPANY_REQUIRED : PERSON_REQUIRED;
-  const templateCols = isCompany ? COMPANY_TEMPLATE_COLUMNS : PERSON_TEMPLATE_COLUMNS;
   const sampleCsv = isCompany ? SAMPLE_COMPANY_CSV : SAMPLE_PERSON_CSV;
 
-  const initialStep: StepId = isCampaignScoped ? 'upload' : 'template';
-  const [step, setStep] = useState<StepId>(initialStep);
-  const [maxStepReached, setMaxStepReached] = useState<StepId>(initialStep);
+  const [step, setStep] = useState<StepId>('upload');
 
   // Upload state
   const [fileName, setFileName] = useState<string | null>(null);
@@ -49,7 +52,7 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
   const [parsedHeaders, setParsedHeaders] = useState<string[]>([]);
   const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([]);
 
-  // Confirm/import state
+  // Import / done state
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [simulateError, setSimulateError] = useState(false);
@@ -58,19 +61,12 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef(false);
 
-  const reset = (toStep: StepId = initialStep) => {
-    setStep(toStep);
-    setMaxStepReached(toStep);
+  const reset = () => {
+    setStep('upload');
     setFileName(null); setFileSize(0); setParsing(false);
     setUploadError(null); setMissingCols(null);
     setParsedHeaders([]); setParsedRows([]);
     setImporting(false); setProgress(0); setImportError(false);
-  };
-
-  const goTo = (s: StepId) => {
-    setStep(s);
-    const order: StepId[] = ['template', 'upload', 'preview', 'confirm', 'success'];
-    if (order.indexOf(s) > order.indexOf(maxStepReached)) setMaxStepReached(s);
   };
 
   // ---- Duplicate detection ----
@@ -115,7 +111,7 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
     }
     setParsedHeaders(headers);
     setParsedRows(rows);
-    goTo('preview');
+    setStep('preview');
   };
 
   const loadSample = () => {
@@ -137,6 +133,7 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
     setImporting(true);
     setProgress(0);
     setImportError(false);
+    setStep('done');
     const start = Date.now();
     const tick = () => {
       const elapsed = Date.now() - start;
@@ -148,7 +145,8 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
           if (simulateError) {
             setImporting(false); setImportError(true);
           } else {
-            setImporting(false); goTo('success');
+            setImporting(false);
+            onComplete?.();
           }
         }, 200);
       }
@@ -156,22 +154,7 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
     requestAnimationFrame(tick);
   };
 
-  // ---- Stepper config ----
-  const steps: { id: StepId; label: string }[] = isCampaignScoped
-    ? [
-        { id: 'upload', label: 'Upload' },
-        { id: 'preview', label: 'Preview' },
-        { id: 'confirm', label: 'Confirm' },
-      ]
-    : [
-        { id: 'template', label: 'Template' },
-        { id: 'upload', label: 'Upload' },
-        { id: 'preview', label: 'Preview' },
-        { id: 'confirm', label: 'Confirm' },
-      ];
-
-  const stepIndex = steps.findIndex(s => s.id === step);
-  const maxIndex = steps.findIndex(s => s.id === maxStepReached);
+  const stepIndex = STEPS.findIndex(s => s.id === step);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
@@ -202,57 +185,41 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
         </div>
 
         {/* Stepper */}
-        {step !== 'success' && (
-          <div className="px-5 py-3 border-b border-border flex items-center gap-2">
-            {steps.map((s, i) => {
-              const done = i < stepIndex;
-              const active = i === stepIndex;
-              const reachable = i <= maxIndex;
-              return (
-                <React.Fragment key={s.id}>
-                  <button
-                    disabled={!reachable || active}
-                    onClick={() => reachable && goTo(s.id)}
-                    className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded transition-colors ${
-                      active ? 'text-foreground font-semibold' :
-                      done ? 'text-primary hover:bg-accent/30' :
-                      'text-muted-foreground'
-                    } ${reachable && !active ? 'cursor-pointer' : 'cursor-default'}`}
-                  >
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold ${
-                      done ? 'bg-primary text-primary-foreground' :
-                      active ? 'bg-primary/20 text-primary border border-primary' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {done ? <Check className="w-3 h-3" /> : i + 1}
-                    </span>
-                    {s.label}
-                  </button>
-                  {i < steps.length - 1 && <div className="flex-1 h-px bg-border" />}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        )}
+        <div className="px-5 py-3 border-b border-border flex items-center gap-2">
+          {STEPS.map((s, i) => {
+            const done = i < stepIndex;
+            const active = i === stepIndex;
+            return (
+              <React.Fragment key={s.id}>
+                <div
+                  className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded ${
+                    active ? 'text-foreground font-semibold' :
+                    done ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold ${
+                    done ? 'bg-primary text-primary-foreground' :
+                    active ? 'bg-primary/20 text-primary border border-primary' :
+                    'bg-muted text-muted-foreground'
+                  }`}>
+                    {done ? <Check className="w-3 h-3" /> : i + 1}
+                  </span>
+                  {s.label}
+                </div>
+                {i < STEPS.length - 1 && <div className="flex-1 h-px bg-border" />}
+              </React.Fragment>
+            );
+          })}
+        </div>
 
         {/* Body */}
         <div className="overflow-auto px-5 py-4" style={{ maxHeight: 'calc(90vh - 180px)' }}>
-          {step === 'template' && (
-            <TemplateStep
-              isCompany={isCompany}
-              templateCols={templateCols}
-              onDownload={() => downloadTemplate(`${entity}-import-template.csv`, templateCols)}
-              onNext={() => goTo('upload')}
-            />
-          )}
-
           {step === 'upload' && (
             <UploadStep
               fileName={fileName} fileSize={fileSize} parsing={parsing}
               uploadError={uploadError} missingCols={missingCols}
               dragRef={dragRef} fileInputRef={fileInputRef}
               onFile={handleFile} onDrop={onDrop} onLoadSample={loadSample}
-              onBack={isCampaignScoped ? null : () => goTo('template')}
               onRetry={() => { setMissingCols(null); setFileName(null); setUploadError(null); }}
             />
           )}
@@ -262,29 +229,20 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
               isCompany={isCompany} headers={parsedHeaders} rows={rowsWithStatus}
               dupCount={dupCount} newCount={newCount} allDuplicates={allDuplicates}
               campaignName={campaignName}
-              onBack={() => goTo('upload')}
-              onNext={() => goTo('confirm')}
-            />
-          )}
-
-          {step === 'confirm' && (
-            <ConfirmStep
-              isCompany={isCompany} newCount={newCount} dupCount={dupCount}
-              campaignName={campaignName} importing={importing} progress={progress}
-              importError={importError} simulateError={simulateError}
-              setSimulateError={setSimulateError}
-              onBack={() => goTo('preview')}
+              simulateError={simulateError} setSimulateError={setSimulateError}
               onConfirm={startImport}
-              onRetry={() => { setImportError(false); setSimulateError(false); }}
             />
           )}
 
-          {step === 'success' && (
-            <SuccessStep
-              isCompany={isCompany} newCount={newCount} dupCount={dupCount}
+          {step === 'done' && (
+            <DoneStep
+              isCompany={isCompany} newCount={newCount}
               campaignName={campaignName}
-              onAnother={() => reset(initialStep)}
-              onView={() => { onOpenChange(false); reset(); onComplete?.(); onNavigateCompanies?.(); }}
+              importing={importing} progress={progress}
+              importError={importError}
+              onAnother={reset}
+              onView={() => { onOpenChange(false); reset(); onNavigateCompanies?.(); }}
+              onRetry={() => { reset(); }}
             />
           )}
         </div>
@@ -295,45 +253,6 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
 
 // =================== Step components ===================
 
-const TemplateStep: React.FC<{
-  isCompany: boolean; templateCols: string[];
-  onDownload: () => void; onNext: () => void;
-}> = ({ isCompany, templateCols, onDownload, onNext }) => (
-  <div className="space-y-4">
-    <div>
-      <h3 className="text-sm font-semibold text-foreground mb-1">Step 1 — Download CSV Template</h3>
-      <p className="text-xs text-muted-foreground">
-        Download the CSV template, fill it in, then continue to upload. The template
-        contains every column the importer recognises.
-      </p>
-    </div>
-
-    <div className="rounded-md border border-border p-4" style={{ background: 'hsl(var(--surface-2))' }}>
-      <div className="flex items-center gap-3 mb-3">
-        <FileSpreadsheet className="w-5 h-5 text-primary" />
-        <div className="flex-1">
-          <div className="text-sm font-medium text-foreground">
-            {isCompany ? 'Companies' : 'Persons'} template
-          </div>
-          <div className="text-xs text-muted-foreground">{templateCols.length} columns</div>
-        </div>
-        <Button size="sm" onClick={onDownload} className="gap-1.5">
-          <Download className="w-3.5 h-3.5" /> Download CSV Template
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {templateCols.map(c => (
-          <span key={c} className="text-[11px] px-2 py-0.5 rounded bg-muted/40 text-muted-foreground border border-border">{c}</span>
-        ))}
-      </div>
-    </div>
-
-    <div className="flex justify-end">
-      <Button onClick={onNext} size="sm">Continue to Upload</Button>
-    </div>
-  </div>
-);
-
 const UploadStep: React.FC<{
   fileName: string | null; fileSize: number; parsing: boolean;
   uploadError: string | null; missingCols: string[] | null;
@@ -341,44 +260,30 @@ const UploadStep: React.FC<{
   fileInputRef: React.RefObject<HTMLInputElement>;
   onFile: (f: File) => void; onDrop: (e: React.DragEvent) => void;
   onLoadSample: () => void;
-  onBack: (() => void) | null; onRetry: () => void;
-}> = ({ fileName, fileSize, parsing, uploadError, missingCols, dragRef, fileInputRef, onFile, onDrop, onLoadSample, onBack, onRetry }) => (
+  onRetry: () => void;
+}> = ({ fileName, fileSize, parsing, uploadError, missingCols, dragRef, fileInputRef, onFile, onDrop, onLoadSample, onRetry }) => (
   <div className="space-y-4">
-    <div>
-      <h3 className="text-sm font-semibold text-foreground mb-1">Upload CSV</h3>
-      <p className="text-xs text-muted-foreground">Drag &amp; drop your file or click to browse. Only .csv files are accepted.</p>
-    </div>
-
     <div
       onDragOver={(e) => { e.preventDefault(); dragRef.current = true; }}
       onDragLeave={() => { dragRef.current = false; }}
       onDrop={onDrop}
-      onClick={() => fileInputRef.current?.click()}
-      className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/60 transition-colors"
+      className="border-2 border-dashed border-border rounded-lg p-10 text-center transition-colors hover:border-primary/60"
       style={{ background: 'hsl(var(--surface-2))' }}
     >
-      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-      <div className="text-sm text-foreground">Drop your CSV here or <span className="text-primary underline">browse</span></div>
-      <div className="text-xs text-muted-foreground mt-1">.csv files only</div>
+      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+      <div className="text-sm text-foreground mb-1">Drag &amp; drop your CSV file here</div>
+      <div className="text-xs text-muted-foreground mb-4">.csv files only</div>
+      <Button size="sm" onClick={() => fileInputRef.current?.click()}>Browse</Button>
       <input
         ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }}
       />
     </div>
 
-    <div className="flex items-center justify-between">
-      <Button variant="outline" size="sm" onClick={onLoadSample}>Load Sample Data</Button>
-      {fileName && !parsing && !missingCols && !uploadError && (
-        <div className="text-xs text-muted-foreground">{fileName} • {(fileSize / 1024).toFixed(1)} KB</div>
-      )}
-    </div>
-
     {uploadError && (
-      <Alert variant="destructive">
-        <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Wrong file type</AlertTitle>
-        <AlertDescription>{uploadError}</AlertDescription>
-      </Alert>
+      <div className="text-xs text-destructive flex items-center gap-1.5">
+        <AlertCircle className="w-3.5 h-3.5" /> {uploadError}
+      </div>
     )}
 
     {parsing && (
@@ -403,8 +308,16 @@ const UploadStep: React.FC<{
       </Alert>
     )}
 
-    <div className="flex justify-between">
-      {onBack ? <Button variant="outline" size="sm" onClick={onBack}><ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back</Button> : <div />}
+    <div className="flex items-center justify-between pt-1">
+      <button
+        onClick={onLoadSample}
+        className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+      >
+        Load Sample Data
+      </button>
+      {fileName && !parsing && !missingCols && !uploadError && (
+        <div className="text-xs text-muted-foreground">{fileName} • {(fileSize / 1024).toFixed(1)} KB</div>
+      )}
     </div>
   </div>
 );
@@ -415,32 +328,21 @@ const PreviewStep: React.FC<{
   rows: { row: Record<string, string>; domain: string; isDuplicate: boolean }[];
   dupCount: number; newCount: number; allDuplicates: boolean;
   campaignName?: string;
-  onBack: () => void; onNext: () => void;
-}> = ({ isCompany, headers, rows, dupCount, newCount, allDuplicates, campaignName, onBack, onNext }) => {
+  simulateError: boolean; setSimulateError: (v: boolean) => void;
+  onConfirm: () => void;
+}> = ({ isCompany, headers, rows, dupCount, newCount, allDuplicates, campaignName, simulateError, setSimulateError, onConfirm }) => {
   const firstCol = isCompany ? 'Company Name' : 'First Name';
   const otherHeaders = headers.filter(h => h !== firstCol);
 
   return (
     <div className="space-y-3">
-      {allDuplicates ? (
-        <Alert variant="destructive">
-          <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>No new records to import</AlertTitle>
-          <AlertDescription>All rows match existing companies.</AlertDescription>
-        </Alert>
-      ) : (
-        <Alert>
-          <CheckCircle2 className="w-4 h-4" />
-          <AlertTitle>{rows.length} rows detected</AlertTitle>
-          <AlertDescription>
-            {newCount} will be imported, {dupCount} duplicate{dupCount === 1 ? '' : 's'} will be skipped.
-          </AlertDescription>
-        </Alert>
-      )}
+      <div className="text-xs text-muted-foreground">
+        {newCount} new · {dupCount} duplicate{dupCount === 1 ? '' : 's'} will be skipped
+      </div>
 
       {campaignName && newCount > 0 && (
-        <div className="text-xs text-muted-foreground border border-border rounded-md px-3 py-2" style={{ background: 'hsl(var(--surface-2))' }}>
-          Assignments will be created for all new companies under campaign <span className="text-foreground font-medium">{campaignName}</span>.
+        <div className="text-xs text-muted-foreground">
+          Assignments will be created for all new companies under <span className="text-foreground font-medium">{campaignName}</span>.
         </div>
       )}
 
@@ -489,110 +391,83 @@ const PreviewStep: React.FC<{
         </div>
       </div>
 
-      <div className="flex justify-between">
-        <Button variant="outline" size="sm" onClick={onBack}><ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back</Button>
-        <Button size="sm" onClick={onNext} disabled={allDuplicates}>Continue</Button>
+      {allDuplicates && (
+        <Alert variant="destructive">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertTitle>No new records to import</AlertTitle>
+          <AlertDescription>All rows match existing companies.</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center justify-between pt-1">
+        <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 cursor-pointer select-none">
+          <input
+            type="checkbox" checked={simulateError} onChange={e => setSimulateError(e.target.checked)}
+            style={{ accentColor: 'hsl(var(--primary))' }}
+          />
+          Simulate Error
+        </label>
+        <Button size="sm" onClick={onConfirm} disabled={newCount === 0}>
+          Confirm Import
+        </Button>
       </div>
     </div>
   );
 };
 
-const ConfirmStep: React.FC<{
-  isCompany: boolean; newCount: number; dupCount: number;
-  campaignName?: string; importing: boolean; progress: number;
-  importError: boolean; simulateError: boolean;
-  setSimulateError: (v: boolean) => void;
-  onBack: () => void; onConfirm: () => void; onRetry: () => void;
-}> = ({ isCompany, newCount, dupCount, campaignName, importing, progress, importError, simulateError, setSimulateError, onBack, onConfirm, onRetry }) => (
-  <div className="space-y-4">
-    <h3 className="text-sm font-semibold text-foreground">Confirm Import</h3>
-
-    <div className="rounded-md border border-border p-4 space-y-2" style={{ background: 'hsl(var(--surface-2))' }}>
-      <Row label={`Records to import`} value={String(newCount)} highlight />
-      <Row label="Duplicates skipped" value={String(dupCount)} />
-      {campaignName && <Row label="Campaign" value={campaignName} />}
-      <Row label="Type" value={isCompany ? 'Companies' : 'Persons'} />
-    </div>
-
-    {newCount === 0 && (
-      <Alert variant="destructive">
-        <AlertTriangle className="w-4 h-4" />
-        <AlertTitle>Nothing to import</AlertTitle>
-        <AlertDescription>All rows are duplicates — go back and upload a different file.</AlertDescription>
-      </Alert>
-    )}
-
-    {importError && (
-      <Alert variant="destructive">
-        <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Import failed</AlertTitle>
-        <AlertDescription>
-          Please try again.
-          <Button variant="link" className="px-1 h-auto text-xs" onClick={onRetry}>Reset</Button>
-        </AlertDescription>
-      </Alert>
-    )}
-
-    {importing && (
-      <div className="space-y-2">
+const DoneStep: React.FC<{
+  isCompany: boolean; newCount: number; campaignName?: string;
+  importing: boolean; progress: number; importError: boolean;
+  onAnother: () => void; onView: () => void; onRetry: () => void;
+}> = ({ isCompany, newCount, campaignName, importing, progress, importError, onAnother, onView, onRetry }) => {
+  if (importing) {
+    return (
+      <div className="space-y-3 py-4">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Importing… {Math.round(progress)}%
         </div>
         <Progress value={progress} />
       </div>
-    )}
+    );
+  }
 
-    <div className="flex items-center justify-between pt-1">
-      <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 cursor-pointer select-none">
-        <input
-          type="checkbox" checked={simulateError} onChange={e => setSimulateError(e.target.checked)}
-          style={{ accentColor: 'hsl(var(--primary))' }}
-        />
-        dev: simulate error
-      </label>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={onBack} disabled={importing}>
-          <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back
-        </Button>
-        <Button size="sm" onClick={onConfirm} disabled={importing || newCount === 0}>
-          {importing ? 'Importing…' : 'Confirm Import'}
-        </Button>
+  if (importError) {
+    return (
+      <div className="space-y-3 py-2">
+        <Alert variant="destructive">
+          <AlertCircle className="w-4 h-4" />
+          <AlertTitle>Import failed</AlertTitle>
+          <AlertDescription>Please try again.</AlertDescription>
+        </Alert>
+        <div className="flex justify-end">
+          <Button size="sm" onClick={onRetry}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-8 flex flex-col items-center text-center space-y-3">
+      <div className="w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center">
+        <CheckCircle2 className="w-7 h-7 text-green-400" />
+      </div>
+      <div className="space-y-1">
+        <div className="text-sm text-foreground font-medium">
+          {newCount} {isCompany ? 'companies' : 'persons'} imported.
+        </div>
+        {campaignName && (
+          <div className="text-xs text-muted-foreground">
+            {newCount} assignment{newCount === 1 ? '' : 's'} created under <span className="text-foreground">{campaignName}</span>.
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-4 text-xs pt-1">
+        <button onClick={onAnother} className="text-primary hover:underline">Import another file</button>
+        <span className="text-muted-foreground">·</span>
+        <button onClick={onView} className="text-primary hover:underline">View Companies</button>
       </div>
     </div>
-  </div>
-);
-
-const Row: React.FC<{ label: string; value: string; highlight?: boolean }> = ({ label, value, highlight }) => (
-  <div className="flex items-center justify-between text-xs">
-    <span className="text-muted-foreground">{label}</span>
-    <span className={highlight ? 'text-primary font-semibold text-sm' : 'text-foreground'}>{value}</span>
-  </div>
-);
-
-const SuccessStep: React.FC<{
-  isCompany: boolean; newCount: number; dupCount: number; campaignName?: string;
-  onAnother: () => void; onView: () => void;
-}> = ({ isCompany, newCount, dupCount, campaignName, onAnother, onView }) => (
-  <div className="py-8 flex flex-col items-center text-center space-y-4">
-    <div className="w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center">
-      <CheckCircle2 className="w-9 h-9 text-green-400" />
-    </div>
-    <div>
-      <h3 className="text-lg font-semibold text-foreground">Import Complete</h3>
-      <p className="text-sm text-muted-foreground mt-1">
-        {newCount} {isCompany ? 'companies' : 'persons'} imported successfully. {dupCount} duplicate{dupCount === 1 ? '' : 's'} were skipped.
-      </p>
-      {campaignName && (
-        <p className="text-sm text-muted-foreground mt-1">
-          {newCount} campaign assignment{newCount === 1 ? '' : 's'} created under <span className="text-foreground font-medium">{campaignName}</span>.
-        </p>
-      )}
-    </div>
-    <div className="flex gap-2">
-      <Button variant="outline" size="sm" onClick={onAnother}>Import Another File</Button>
-      <Button size="sm" onClick={onView}>View {isCompany ? 'Companies' : 'People'}</Button>
-    </div>
-  </div>
-);
+  );
+};
 
 export default ImportFlow;
