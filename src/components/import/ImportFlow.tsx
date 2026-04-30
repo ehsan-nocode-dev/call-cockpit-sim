@@ -222,6 +222,10 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
               dragRef={dragRef} fileInputRef={fileInputRef}
               onFile={handleFile} onDrop={onDrop} onLoadSample={loadSample}
               onRetry={() => { setMissingCols(null); setFileName(null); setUploadError(null); }}
+              onDownloadTemplate={() => downloadTemplate(
+                isCompany ? 'companies-template.csv' : 'persons-template.csv',
+                isCompany ? COMPANY_TEMPLATE_COLUMNS : PERSON_TEMPLATE_COLUMNS,
+              )}
             />
           )}
 
@@ -232,6 +236,9 @@ const ImportFlow: React.FC<ImportFlowProps> = ({
               campaignName={campaignName}
               simulateError={simulateError} setSimulateError={setSimulateError}
               onConfirm={startImport}
+              onUpdateCell={(rowIdx, header, value) => {
+                setParsedRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [header]: value } : r));
+              }}
             />
           )}
 
