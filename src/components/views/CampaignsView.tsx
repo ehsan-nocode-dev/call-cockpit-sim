@@ -277,6 +277,15 @@ const CampaignsView: React.FC = () => {
         title="Delete Campaign?"
         description={`This will permanently delete "${deleteConfirm.name}" and remove all associated assignments. This action cannot be undone.`}
       />
+
+      {/* Campaign-scoped CSV import */}
+      <ImportFlow
+        open={importCampaign.open}
+        onOpenChange={(v) => setImportCampaign(s => ({ ...s, open: v }))}
+        entity="company"
+        campaignName={importCampaign.name}
+        onComplete={() => toast({ title: 'Import Complete', description: `Companies imported into "${importCampaign.name}".` })}
+      />
     </div>
   );
 };
