@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useAppState } from '@/context/AppContext';
 import { campaigns as initialCampaigns, Campaign } from '@/data/mockData';
-import { Search, ChevronUp, ChevronDown, Eye, X, Plus, Pencil, Archive, MoreVertical } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, Eye, X, Plus, Pencil, Archive, MoreVertical, Upload } from 'lucide-react';
+import ImportFlow from '@/components/import/ImportFlow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -56,6 +57,7 @@ const CampaignsView: React.FC = () => {
   const [editForm, setEditForm] = useState({ id: '', name: '', pitchText: '', pitchLink: '', description: '' });
   const [archiveConfirm, setArchiveConfirm] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+  const [importCampaign, setImportCampaign] = useState<{ open: boolean; name: string }>({ open: false, name: '' });
 
   const data = useMemo(() => {
     let list: CampaignRow[] = initialCampaigns.map(c => ({
@@ -198,6 +200,9 @@ const CampaignsView: React.FC = () => {
                         <DropdownMenuItem onClick={() => { setEditForm({ id: c.id, name: c.name, pitchText: c.pitchText, pitchLink: c.pitchLink, description: '' }); setEditOpen(true); }}>
                           <Pencil className="w-3.5 h-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setImportCampaign({ open: true, name: c.name })}>
+                          <Upload className="w-3.5 h-3.5 mr-2" /> Import Companies
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setArchiveConfirm({ open: true, id: c.id, name: c.name })}>
                           <Archive className="w-3.5 h-3.5 mr-2" /> {c.status === 'Archived' ? 'Restore' : 'Archive'}
                         </DropdownMenuItem>
@@ -271,6 +276,15 @@ const CampaignsView: React.FC = () => {
         }}
         title="Delete Campaign?"
         description={`This will permanently delete "${deleteConfirm.name}" and remove all associated assignments. This action cannot be undone.`}
+      />
+
+      {/* Campaign-scoped CSV import */}
+      <ImportFlow
+        open={importCampaign.open}
+        onOpenChange={(v) => setImportCampaign(s => ({ ...s, open: v }))}
+        entity="company"
+        campaignName={importCampaign.name}
+        onComplete={() => toast({ title: 'Import Complete', description: `Companies imported into "${importCampaign.name}".` })}
       />
     </div>
   );
