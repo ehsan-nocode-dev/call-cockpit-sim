@@ -269,8 +269,18 @@ const UploadStep: React.FC<{
   onFile: (f: File) => void; onDrop: (e: React.DragEvent) => void;
   onLoadSample: () => void;
   onRetry: () => void;
-}> = ({ fileName, fileSize, parsing, uploadError, missingCols, dragRef, fileInputRef, onFile, onDrop, onLoadSample, onRetry }) => (
+  onDownloadTemplate: () => void;
+}> = ({ fileName, fileSize, parsing, uploadError, missingCols, dragRef, fileInputRef, onFile, onDrop, onLoadSample, onRetry, onDownloadTemplate }) => (
   <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <div className="text-xs text-muted-foreground">
+        Need a starting point? Download the CSV template, fill it in, then upload it below.
+      </div>
+      <Button size="sm" variant="outline" onClick={onDownloadTemplate}>
+        Download Template
+      </Button>
+    </div>
+
     <div
       onDragOver={(e) => { e.preventDefault(); dragRef.current = true; }}
       onDragLeave={() => { dragRef.current = false; }}
