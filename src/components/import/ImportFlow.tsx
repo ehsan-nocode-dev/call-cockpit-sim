@@ -11,8 +11,9 @@ import {
 import {
   COMPANY_REQUIRED, PERSON_REQUIRED,
   EXISTING_DOMAINS, SAMPLE_COMPANY_CSV, SAMPLE_PERSON_CSV,
+  COMPANY_TEMPLATE_COLUMNS, PERSON_TEMPLATE_COLUMNS,
 } from './sampleCsv';
-import { parseCsv, extractDomain } from './csvUtils';
+import { parseCsv, extractDomain, downloadTemplate } from './csvUtils';
 
 export type ImportEntity = 'company' | 'person';
 
