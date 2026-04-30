@@ -340,6 +340,23 @@ const UploadStep: React.FC<{
   </div>
 );
 
+const EditableCell: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  bold?: boolean;
+  bg: string;
+}> = ({ value, onChange, bold, bg }) => (
+  <input
+    value={value}
+    onChange={(e) => onChange(e.target.value)}
+    className={`w-full bg-transparent outline-none border-none px-0 py-0 text-xs ${
+      bold ? 'text-foreground font-medium' : 'text-muted-foreground'
+    } focus:text-foreground focus:ring-1 focus:ring-primary/60 focus:rounded-sm focus:px-1`}
+    style={{ background: 'transparent', minWidth: 60 }}
+    spellCheck={false}
+  />
+);
+
 const PreviewStep: React.FC<{
   isCompany: boolean;
   headers: string[];
@@ -348,14 +365,18 @@ const PreviewStep: React.FC<{
   campaignName?: string;
   simulateError: boolean; setSimulateError: (v: boolean) => void;
   onConfirm: () => void;
-}> = ({ isCompany, headers, rows, dupCount, newCount, allDuplicates, campaignName, simulateError, setSimulateError, onConfirm }) => {
+  onUpdateCell: (rowIdx: number, header: string, value: string) => void;
+}> = ({ isCompany, headers, rows, dupCount, newCount, allDuplicates, campaignName, simulateError, setSimulateError, onConfirm, onUpdateCell }) => {
   const firstCol = isCompany ? 'Company Name' : 'First Name';
   const otherHeaders = headers.filter(h => h !== firstCol);
 
   return (
     <div className="space-y-3">
-      <div className="text-xs text-muted-foreground">
-        {newCount} new · {dupCount} duplicate{dupCount === 1 ? '' : 's'} will be skipped
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-muted-foreground">
+          {newCount} new · {dupCount} duplicate{dupCount === 1 ? '' : 's'} will be skipped
+        </div>
+        <div className="text-[10px] text-muted-foreground/70">Click any cell to edit</div>
       </div>
 
       {campaignName && newCount > 0 && (
@@ -383,27 +404,40 @@ const PreviewStep: React.FC<{
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => (
-                <tr key={i} className={r.isDuplicate ? 'bg-amber-500/10' : 'hover:bg-accent/10'}>
-                  <td className="sticky left-0 z-10 px-2 py-1 text-foreground font-medium border-b border-r border-border whitespace-nowrap"
-                      style={{ background: r.isDuplicate ? 'hsl(45 90% 50% / 0.10)' : 'hsl(var(--surface-1))' }}>
-                    {r.row[firstCol] || '—'}
-                  </td>
-                  {otherHeaders.map(h => (
-                    <td key={h} className="px-2 py-1 text-muted-foreground border-b border-border whitespace-nowrap max-w-[200px] truncate" title={r.row[h]}>
-                      {r.row[h] || '—'}
+              {rows.map((r, i) => {
+                const dupBg = 'hsl(45 90% 50% / 0.10)';
+                const cellBg = r.isDuplicate ? dupBg : 'hsl(var(--surface-1))';
+                return (
+                  <tr key={i} className={r.isDuplicate ? 'bg-amber-500/10' : 'hover:bg-accent/10'}>
+                    <td className="sticky left-0 z-10 px-2 py-1 border-b border-r border-border whitespace-nowrap"
+                        style={{ background: cellBg }}>
+                      <EditableCell
+                        value={r.row[firstCol] || ''}
+                        bold
+                        bg={cellBg}
+                        onChange={(v) => onUpdateCell(i, firstCol, v)}
+                      />
                     </td>
-                  ))}
-                  <td className="sticky right-0 z-10 px-2 py-1 border-b border-l border-border whitespace-nowrap"
-                      style={{ background: r.isDuplicate ? 'hsl(45 90% 50% / 0.10)' : 'hsl(var(--surface-1))' }}>
-                    {r.isDuplicate ? (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-amber-500/20 text-amber-400">Duplicate</span>
-                    ) : (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-green-500/15 text-green-400">New</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    {otherHeaders.map(h => (
+                      <td key={h} className="px-2 py-1 border-b border-border whitespace-nowrap max-w-[220px]">
+                        <EditableCell
+                          value={r.row[h] || ''}
+                          bg="transparent"
+                          onChange={(v) => onUpdateCell(i, h, v)}
+                        />
+                      </td>
+                    ))}
+                    <td className="sticky right-0 z-10 px-2 py-1 border-b border-l border-border whitespace-nowrap"
+                        style={{ background: cellBg }}>
+                      {r.isDuplicate ? (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-amber-500/20 text-amber-400">Duplicate</span>
+                      ) : (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-green-500/15 text-green-400">New</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
