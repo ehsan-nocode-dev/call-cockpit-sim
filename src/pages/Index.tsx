@@ -11,6 +11,7 @@ import OpportunitiesView from '@/components/views/OpportunitiesView';
 import PeopleView from '@/components/views/PeopleView';
 import UsersView from '@/components/views/UsersView';
 import SettingsView from '@/components/views/SettingsView';
+import ImportView from '@/components/views/ImportView';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 const Index = () => {
@@ -45,6 +46,8 @@ const Index = () => {
             <UsersView />
           ) : activeView === 'settings' ? (
             <SettingsView />
+          ) : activeView === 'import' ? (
+            <ImportView onNavigate={setActiveView} />
           ) : (
             <PlaceholderView viewId={activeView} />
           )}
